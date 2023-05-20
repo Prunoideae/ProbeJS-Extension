@@ -7,7 +7,7 @@ export function provideItem(
 ): vscode.CompletionItem {
     return {
         label: {
-            label: item.localized ?? item.id,
+            label: (item.localized ?? item.id),
             // detail: " " + item.id, // Removed due to a bit too crowded
             description: item.getSimpleDesc(),
         },

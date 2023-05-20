@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { Collector } from './collectors';
+import { assert } from 'console';
 
 export function activate(context: vscode.ExtensionContext) {
 	let ws = vscode.workspace.workspaceFolders;
@@ -12,8 +13,15 @@ export function activate(context: vscode.ExtensionContext) {
 
 	collector.buildCompletions(workspace);
 	const provider: vscode.CompletionItemProvider = {
+
 		provideCompletionItems(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken, context: vscode.CompletionContext) {
-			return collector.getItemCompletions();
+			var trigger = document.getText(new vscode.Range(position.translate(0, -1), position));
+			return collector.getItemCompletions().filter((item) => {
+				if (typeof item.label === "string") {
+					throw new Error("Item label should not be a string");
+				}
+				return item.label.label.startsWith(trigger);
+			});
 		}
 	};
 
