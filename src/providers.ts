@@ -15,3 +15,10 @@ export function provideItem(
         insertText: `"${item.id}"`,
     };
 }
+
+export function provideHover(
+    item: ItemAttribute,
+    uri: vscode.Uri,
+): vscode.Hover {
+    return new vscode.Hover(item.getMarkdown(uri));
+}
