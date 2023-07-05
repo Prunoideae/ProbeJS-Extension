@@ -43,6 +43,11 @@ export function activate(context: vscode.ExtensionContext) {
 				// get the word between the two "
 				word = wordFirst.substring(first + 1) + wordSecond.substring(0, second);
 
+				// if the word is `{number}x {item}`, remove the number and the x
+				if (word.match(/^\d+x /)) {
+					word = word.substring(word.indexOf(" ") + 1);
+				}
+
 				// if ":" not in word, prefix with "minecraft:"
 				if (!word.includes(":")) {
 					word = "minecraft:" + word;
