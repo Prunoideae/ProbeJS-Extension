@@ -2,6 +2,11 @@
 
 All notable changes to the "ProbeJS" extension will be documented in this file.
 
+## [v0.0.3]
+
+- Removed not so useful rich completions.
+- Added useful rich hover display for KubeJS and configs.
+
 ## [v0.0.2]
 
 - Suggestions will only appear when the first character of translated name is committed. (Case-sensitive)
