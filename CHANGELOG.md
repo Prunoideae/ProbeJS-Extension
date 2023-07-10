@@ -2,6 +2,11 @@
 
 All notable changes to the "ProbeJS" extension will be documented in this file.
 
+## [v0.0.5]
+
+- Added correct parsing for `'` and `\``.
+- Added support for item tags, indicated by `#${item_tag}`.
+
 ## [v0.0.4]
 
 - Hover now correctly displays if the string is a `${number}x ${item}`

@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { ItemAttribute } from "./attributes";
+import { ItemAttribute, TagAttribute } from "./attributes";
 
 export function provideItem(
     item: ItemAttribute,
@@ -21,4 +21,11 @@ export function provideHover(
     uri: vscode.Uri,
 ): vscode.Hover {
     return new vscode.Hover(item.getMarkdown(uri));
+}
+
+export function provideTag(
+    tag: TagAttribute,
+    uri: vscode.Uri,
+): vscode.Hover {
+    return new vscode.Hover(tag.getMarkdown(uri));
 }

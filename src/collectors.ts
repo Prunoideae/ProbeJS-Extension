@@ -1,11 +1,13 @@
 import * as vscode from "vscode";
 import { Uri } from "vscode";
-import { ItemAttribute } from "./attributes";
+import { ItemAttribute, TagAttribute } from "./attributes";
 import * as fs from "fs";
-import { provideItem, provideHover } from "./providers";
+import { provideItem, provideHover, provideTag } from "./providers";
 
 export class Collector {
     private items: ItemAttribute[];
+
+    private itemTags: TagAttribute[];
 
     private itemCompletions: vscode.CompletionItem[];
 
@@ -13,6 +15,7 @@ export class Collector {
 
     constructor() {
         this.items = [];
+        this.itemTags = [];
         this.itemCompletions = [];
         this.itemHover = new Map();
     }
@@ -22,7 +25,7 @@ export class Collector {
      * 
      * @param uri {Uri} Path to the file
      */
-    public collect(uri: Uri) {
+    public collectItem(uri: Uri) {
         let fsPath = uri.fsPath;
         if (!fs.existsSync(fsPath)) { return; }
         let data = fs.readFileSync(fsPath);
@@ -31,13 +34,28 @@ export class Collector {
         this.items.push(...array);
     }
 
+    public collectTag(uri: Uri) {
+        let fsPath = uri.fsPath;
+        if (!fs.existsSync(fsPath)) { return; }
+        let data = fs.readFileSync(fsPath);
+        let array = JSON.parse(data.toString()) as TagAttribute[];
+        array = array.map((item) => Object.assign(new TagAttribute(), item));
+        this.itemTags.push(...array);
+    }
+
     public clear() {
         this.itemCompletions.length = 0;
         this.items.length = 0;
+        this.itemTags.length = 0;
+        this.itemHover.clear();
     }
 
     public getItems(): ItemAttribute[] {
         return this.items;
+    }
+
+    public getTags(): TagAttribute[] {
+        return this.itemTags;
     }
 
     public getItemCompletions(): vscode.CompletionItem[] {
@@ -52,6 +70,9 @@ export class Collector {
         if (this.itemHover.size === 0) {
             this.items.forEach((item) => {
                 this.itemHover.set(item.id, provideHover(item, workspace.with({ path: workspace.path + "/" })));
+            });
+            this.itemTags.forEach((tag) => {
+                this.itemHover.set(`#${tag.id}`, provideTag(tag, workspace.with({ path: workspace.path + "/" })));
             });
         }
         if (this.itemHover.has(id)) {

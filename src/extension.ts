@@ -7,8 +7,10 @@ export function activate(context: vscode.ExtensionContext) {
 	let workspace = ws[0].uri;
 
 	let attributesPath = workspace.with({ path: workspace.path + "/.vscode/item-attributes.json" });
+	let tagsPath = workspace.with({ path: workspace.path + "/.vscode/item-tag-attributes.json" });
 	const collector = new Collector();
-	collector.collect(attributesPath);
+	collector.collectItem(attributesPath);
+	collector.collectTag(tagsPath);
 
 	collector.buildCompletions(workspace);
 	const provider: vscode.CompletionItemProvider = {
@@ -29,19 +31,11 @@ export function activate(context: vscode.ExtensionContext) {
 	languages.forEach((lang) => {
 		context.subscriptions.push(vscode.languages.registerHoverProvider(lang, {
 			provideHover(document, position) {
-				var range = document.getWordRangeAtPosition(position, /".+"/);
+				var range = document.getWordRangeAtPosition(position, /(["`'])((?:\\\1|(?:(?!\1)).)*)(\1)/);
 				if (!range) { return undefined; }
 				var word = document.getText(range);
-				// split the word by position of the cursor
-				let wordFirst = word.substring(0, position.character - range.start.character);
-				let wordSecond = word.substring(position.character - range.start.character);
-
-				// find the last " in the first part, and the first " in the second part
-				let first = wordFirst.lastIndexOf("\"");
-				let second = wordSecond.indexOf("\"");
-
-				// get the word between the two "
-				word = wordFirst.substring(first + 1) + wordSecond.substring(0, second);
+				// strip quotes
+				word = word.substring(1, word.length - 1);
 
 				// if the word is `{number}x {item}`, remove the number and the x
 				if (word.match(/^\d+x /)) {
@@ -60,7 +54,8 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.commands.registerCommand("probejs.reload", () => {
 		collector.clear();
-		collector.collect(attributesPath);
+		collector.collectItem(attributesPath);
+		collector.collectTag(tagsPath);
 		collector.buildCompletions(workspace);
 	}));
 }

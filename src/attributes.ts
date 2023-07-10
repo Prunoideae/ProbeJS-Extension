@@ -84,3 +84,34 @@ export class ItemAttribute {
         return md;
     }
 }
+
+
+
+export class TagAttribute {
+    id!: `${string}:${string}`;
+    items!: string[];
+
+    private getImagePath(itemId: string): string {
+        let [base, loc] = itemId.split(":");
+        loc = loc.replace("/", "_");
+        return `./kubejs/probe/cache/rich/${base}/${loc}.png`;
+    }
+
+    private getImageMarkdowns(): string {
+        let itemMds = this.items.map((item) => `![${item}](${this.getImagePath(item)})`);
+        // clamp to 5 items, if clamped, add a "..." at the end
+        if (itemMds.length > 5) {
+            itemMds = itemMds.slice(0, 5);
+            itemMds.push("**...**");
+        }
+        return itemMds.join(" ");
+    }
+
+    public getMarkdown(baseUri: Uri): MarkdownString {
+        const md = new MarkdownString("### " + this.id);
+        md.baseUri = baseUri;
+        md.appendMarkdown(`\n\n${this.getImageMarkdowns()}`);
+        md.appendMarkdown(`\n\n**Count**: ${this.items.length}`)
+        return md;
+    }
+}
