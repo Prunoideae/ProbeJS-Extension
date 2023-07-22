@@ -2,6 +2,12 @@
 
 All notable changes to the "ProbeJS" extension will be documented in this file.
 
+## [v0.0.6]
+
+- Added support for fluid rendering.
+- Added support for translations.
+- Added support for color picking.
+
 ## [v0.0.5]
 
 - Added correct parsing for `'` and `\``.

@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { ItemAttribute, TagAttribute } from "./attributes";
+import { FluidAttribute, ItemAttribute, LanguageAttribute, TagAttribute } from "./attributes";
 
 export function provideItem(
     item: ItemAttribute,
@@ -16,11 +16,18 @@ export function provideItem(
     };
 }
 
-export function provideHover(
+export function provideItemHover(
     item: ItemAttribute,
     uri: vscode.Uri,
 ): vscode.Hover {
     return new vscode.Hover(item.getMarkdown(uri));
+}
+
+export function provideFluid(
+    fluid: FluidAttribute,
+    uri: vscode.Uri,
+): vscode.Hover {
+    return new vscode.Hover(fluid.getMarkdown(uri));
 }
 
 export function provideTag(
@@ -28,4 +35,10 @@ export function provideTag(
     uri: vscode.Uri,
 ): vscode.Hover {
     return new vscode.Hover(tag.getMarkdown(uri));
+}
+
+export function provideLangKey(
+    langkey: LanguageAttribute,
+): vscode.Hover {
+    return new vscode.Hover(langkey.getMarkdown());
 }

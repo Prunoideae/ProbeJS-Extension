@@ -2,7 +2,7 @@
   "name": "probejs",
   "displayName": "ProbeJS",
   "description": "Supplying Rich Completion Display for ProbeJS",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "engines": {
     "vscode": "^1.78.0"
   },
