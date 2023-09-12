@@ -60,11 +60,17 @@ export class ItemAttribute {
         return "Item";
     }
 
-    public getMarkdown(baseUri: Uri): MarkdownString {
+    public getMarkdown(baseUri: Uri, iconMap: Map<string, string>): MarkdownString {
         const md = new MarkdownString("### " + this.localized ?? this.id);
         md.baseUri = baseUri;
 
-        md.appendMarkdown(`\n\n![Image](${this.getImagePath()})`);
+        if (iconMap !== undefined && iconMap.size !== 0) {
+            if (iconMap.has(this.id)) {
+                md.appendMarkdown(`\n\n![Image](${iconMap.get(this.id)})`);
+            }
+        } else if (fs.existsSync(baseUri.with({ path: baseUri.path + "/" + this.getImagePath() }).fsPath)) {
+            md.appendMarkdown(`\n\n![Image](${this.getImagePath()})`);
+        }
 
         if (this.getDescription()) {
             md.appendMarkdown(`\n\nThis is a ${this.getDescription()}`);
@@ -100,8 +106,11 @@ export class TagAttribute {
         return fs.existsSync(path) ? path : `./kubejs/probe/cache/rich/item/${base}/${loc}.png`;
     }
 
-    private getImageMarkdowns(): string {
-        let itemMds = this.items.map((item) => `![${item}](${this.getImagePath(item)})`);
+    private getImageMarkdowns(iconMap: Map<string, string>): string {
+        let itemMds = iconMap.size !== 0 ?
+            this.items.map((item) => `![Image](${iconMap.get(item)})`) :
+            this.items.map((item) => `![Image](${this.getImagePath(item)})`);
+
         // start a new line for every 6 items, max at 12 in total
         for (let i = 6; i < itemMds.length; i += 6) {
             itemMds[i] = "\n\n" + itemMds[i];
@@ -114,10 +123,10 @@ export class TagAttribute {
         return itemMds.join(" ");
     }
 
-    public getMarkdown(baseUri: Uri): MarkdownString {
+    public getMarkdown(baseUri: Uri, iconMap: Map<string, string>): MarkdownString {
         const md = new MarkdownString("### " + this.id);
         md.baseUri = baseUri;
-        md.appendMarkdown(`\n\n${this.getImageMarkdowns()}`);
+        md.appendMarkdown(`\n\n${this.getImageMarkdowns(iconMap)}`);
         md.appendMarkdown(`\n\n**Count**: ${this.items.length}`);
         return md;
     }
@@ -143,11 +152,17 @@ export class FluidAttribute {
         return `./kubejs/probe/cache/rich/item/${base}/${loc}.png`;
     }
 
-    public getMarkdown(baseUri: Uri): MarkdownString {
+    public getMarkdown(baseUri: Uri, fluidIconMap: Map<string, string>, itemIconMap: Map<string, string>): MarkdownString {
         const md = new MarkdownString("### " + this.localized ?? this.id);
         md.baseUri = baseUri;
 
-        md.appendMarkdown(`\n\n![Image](${this.getImagePath()})`);
+        if (fluidIconMap !== undefined && fluidIconMap.size !== 0) {
+            if (fluidIconMap.has(this.id)) {
+                md.appendMarkdown(`\n\n![Image](${fluidIconMap.get(this.id)})`);
+            }
+        } else if (fs.existsSync(baseUri.with({ path: baseUri.path + "/" + this.getImagePath() }).fsPath)) {
+            md.appendMarkdown(`\n\n![Image](${this.getImagePath()})`);
+        }
 
         if (this.localized) {
             md.appendMarkdown(`\n\n**ID**: ${this.id}`);
@@ -159,7 +174,13 @@ export class FluidAttribute {
 
         if (this.hasBucket) {
             md.appendMarkdown(`\n\nThis fluid has a **bucket item**:`);
-            md.appendMarkdown(`\n\n![Image](${this.getBucketImagePath()})`);
+            if (itemIconMap !== undefined && itemIconMap.size !== 0) {
+                if (itemIconMap.has(this.bucketItem!)) {
+                    md.appendMarkdown(`\n\n![Image](${itemIconMap.get(this.bucketItem!)})`);
+                }
+            } else if (fs.existsSync(baseUri.with({ path: baseUri.path + "/" + this.getBucketImagePath() }).fsPath)) {
+                md.appendMarkdown(`\n\n![Image](${this.getBucketImagePath()})`);
+            }
         }
 
         return md;

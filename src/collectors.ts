@@ -18,6 +18,8 @@ export class Collector {
     private itemHover: Map<string, vscode.Hover>;
     private fluidHover: Map<string, vscode.Hover>;
     private langHover: Map<string, vscode.Hover>;
+    private iconMap: Map<string, string>;
+    private fluidIconMap: Map<string, string>;
 
     constructor() {
         this.items = [];
@@ -28,6 +30,33 @@ export class Collector {
         this.itemHover = new Map();
         this.fluidHover = new Map();
         this.langHover = new Map();
+        this.iconMap = new Map();
+        this.fluidIconMap = new Map();
+    }
+
+    public collectIcons(iconPath: Uri) {
+        if (iconPath === undefined || iconPath.fsPath.endsWith("undefined")) { return; }
+
+        // Get the folder name
+        let unifiedPath = iconPath.fsPath.replace(/\\/g, "/");
+        let folderName = unifiedPath.substring(unifiedPath.lastIndexOf("/") + 1);
+        // Get all .png files in the icon path
+        let files = fs.readdirSync(iconPath.fsPath).filter((file) => file.endsWith(".png"));
+        files.forEach((file) => {
+            // File structure: <modid>__<itemid>__<metadata>[__<NBT>].png
+            // Get modid:itemid as the key, put the path as the value
+            // Ignore the metadata and NBT
+            let mapToUse = this.iconMap;
+            // Remove the .png extension
+            let fileSub = file.substring(0, file.length - 4);
+            if (fileSub.startsWith("fluid__")) {
+                mapToUse = this.fluidIconMap;
+                fileSub = fileSub.substring(7);
+            }
+            let [modid, entryId, meta, nbt] = fileSub.split("__");
+            entryId = entryId.split("__")[0];
+            mapToUse.set(`${modid}:${entryId}`, `./${folderName}/${file}`);
+        });
     }
 
     /**
@@ -91,6 +120,7 @@ export class Collector {
         this.fluidHover.clear();
         this.itemHover.clear();
         this.langHover.clear();
+        this.iconMap.clear();
     }
 
     public getItems(): ItemAttribute[] {
@@ -112,16 +142,25 @@ export class Collector {
     public getHover(id: string, workspace: Uri): vscode.Hover | undefined {
         if (this.itemHover.size === 0) {
             this.items.forEach((item) => {
-                this.itemHover.set(item.id, provideItemHover(item, workspace.with({ path: workspace.path + "/" })));
+                this.itemHover.set(item.id, provideItemHover(
+                    item, workspace.with({ path: workspace.path + "/" }),
+                    this.iconMap
+                ));
             });
             this.itemTags.forEach((tag) => {
-                this.itemHover.set(`#${tag.id}`, provideTag(tag, workspace.with({ path: workspace.path + "/" })));
+                this.itemHover.set(`#${tag.id}`, provideTag(
+                    tag, workspace.with({ path: workspace.path + "/" }),
+                    this.iconMap));
             });
         }
 
         if (this.fluidHover.size === 0) {
             this.fluids.forEach((fluid) => {
-                this.fluidHover.set(fluid.id, provideFluid(fluid, workspace.with({ path: workspace.path + "/" })));
+                this.fluidHover.set(fluid.id, provideFluid(
+                    fluid, workspace.with({ path: workspace.path + "/" }),
+                    this.fluidIconMap,
+                    this.iconMap
+                ));
             });
         }
 

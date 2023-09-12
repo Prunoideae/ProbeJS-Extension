@@ -1,7 +1,7 @@
 import { ColorInformation, TextDocument } from "vscode";
 import * as vscode from "vscode";
 
-export function matchRGBA(document: TextDocument): ColorInformation[] {
+function matchRGBA(document: TextDocument): ColorInformation[] {
     // lazy match all `Color.rgba(r, g, b, a)`
     // rgba are float
     let regex = /Color\.rgba\((\d+\.?\d*|\d+),\s*(\d+\.?\d*|\d+),\s*(\d+\.?\d*|\d+),\s*(\d+\.?\d*|\d+)\)/g;
@@ -38,7 +38,7 @@ export function matchRGBA(document: TextDocument): ColorInformation[] {
     return ranges;
 }
 
-export function matchOf(document: TextDocument): ColorInformation[] {
+function matchOf(document: TextDocument): ColorInformation[] {
     // lazy match `Color.of(...)`, where ... can be an float or a `#XXXXXX` / `#XXXXXXXX` hex color
     // the `...` part is captured
     let regex = /Color\.of\((\d+\.?\d*|\d+|(["`'])#[0-9a-fA-F]{6}(["`'])|(["`'])#[0-9a-fA-F]{8}(["`']))\)/g;
@@ -136,7 +136,7 @@ function getColorStrings(color: number): string[] {
 }
 
 
-export function getAppropriateNearestColor(color: vscode.Color, prevColor: string): string {
+function getAppropriateNearestColor(color: vscode.Color, prevColor: string): string {
 
     let nearestColor = getNearestColor(color, prevColor.toLowerCase().endsWith("dye") ? dyeColors : normalColors);
     let strings = getColorStrings(nearestColor);
@@ -191,7 +191,7 @@ addPredefined(16711680, "RED_DYE", "red_dye", "redDye");
 addPredefined(0, "BLACK_DYE", "black_dye", "blackDye");
 
 
-export function matchPredefined(document: TextDocument): ColorInformation[] {
+function matchPredefined(document: TextDocument): ColorInformation[] {
     // lazy match `Color.of("...")` where ... is A-Z, a-z, and _, quoted by ' or " or `
     // the `...` part is captured
     let regex = /Color\.of\((["'`])([A-Za-z_]+)\1\)/g;
@@ -236,7 +236,7 @@ export function matchPredefined(document: TextDocument): ColorInformation[] {
     return ranges;
 }
 
-export function matchDirect(document: TextDocument): ColorInformation[] {
+function matchDirect(document: TextDocument): ColorInformation[] {
     // lazy match `Color.XXX` where XXX is A-Z, and _, not quoted
     // the `XXX` part is captured
     let regex = /Color\.([A-Z_]+)/g;
@@ -278,7 +278,7 @@ export function matchDirect(document: TextDocument): ColorInformation[] {
     return ranges;
 }
 
-export function matchColor(document: TextDocument): ColorInformation[] {
+function matchColor(document: TextDocument): ColorInformation[] {
     // match `Color` and `Color.` after `.` should not have a-zA-Z_ after it
     // no a-zA-Z_0-9. before Color either
     let regex = /(?<![\w\d\.])Color\.(?![\w\d_])/g;
@@ -295,4 +295,92 @@ export function matchColor(document: TextDocument): ColorInformation[] {
         ranges.push(new vscode.ColorInformation(new vscode.Range(document.positionAt(match.index), document.positionAt(match.index + match[0].length)), new vscode.Color(0, 0, 0, 1)));
     }
     return ranges;
+}
+
+export function getColors(): vscode.DocumentColorProvider {
+    return {
+        provideColorPresentations(color, context, token) {
+            // get selected text
+            let text = context.document.getText(context.range);
+            let formatted = undefined;
+
+            if (text.startsWith("Color.rgba")) {
+                // color to 0-255
+                let r = Math.round(color.red * 255);
+                let g = Math.round(color.green * 255);
+                let b = Math.round(color.blue * 255);
+                let a = Math.round(color.alpha * 255);
+
+                formatted = `Color.rgba(${r}, ${g}, ${b}, ${a})`;
+            } else if (text.startsWith("Color.of")) {
+                // find text is hex or int by checking if it starts with `#`, hex can be 6 or 8 digits
+                let isHex = text.match(/#[0-9a-fA-F]{8}|#[0-9a-fA-F]{6}/);
+                // extract the quotes from `text`
+                let quote = text.substring(9, 10);
+                if (isHex) {
+                    // check if it is 6 or 8 digits
+                    let hex = isHex[0].substring(1);
+                    if (hex.length === 6) {
+                        // convert color to hex
+                        let r = Math.round(color.red * 255).toString(16).padStart(2, "0");
+                        let g = Math.round(color.green * 255).toString(16).padStart(2, "0");
+                        let b = Math.round(color.blue * 255).toString(16).padStart(2, "0");
+                        formatted = `Color.of(${quote}#${r}${g}${b}${quote})`;
+                    } else {
+                        let r = Math.round(color.red * 255).toString(16).padStart(2, "0");
+                        let g = Math.round(color.green * 255).toString(16).padStart(2, "0");
+                        let b = Math.round(color.blue * 255).toString(16).padStart(2, "0");
+                        let a = Math.round(color.alpha * 255).toString(16).padStart(2, "0");
+                        formatted = `Color.of(${quote}#${a}${r}${g}${b}${quote})`;
+                    }
+                } else {
+                    // check if it is a valid int
+                    if (isNaN(parseInt(text.substring(8, text.length - 1)))) {
+                        // get the predefined color
+                        let predefined = text.substring(10, text.length - 2);
+
+                        // extract the quotes from `text`
+                        let quote = text.substring(9, 10);
+                        return [new vscode.ColorPresentation(`Color.of(${quote}${getAppropriateNearestColor(color, predefined)}${quote})`)];
+                    }
+
+                    // convert rgb to int
+                    let r = Math.round(color.red * 255);
+                    let g = Math.round(color.green * 255);
+                    let b = Math.round(color.blue * 255);
+                    // add up rgb to int
+                    let int = (r << 16) + (g << 8) + b;
+                    formatted = `Color.of(${int})`;
+                }
+            } else {
+                // Match the color, `Color.XXXX`, capture the `XXXX`
+                let match = text.match(/Color\.([A-Z_]+)/);
+                if (match) {
+                    // get the predefined color
+                    let predefined = match[1];
+                    return [new vscode.ColorPresentation(`Color.${getAppropriateNearestColor(color, predefined)}`)];
+                } else {
+                    // color to 0-255
+                    let r = Math.round(color.red * 255);
+                    let g = Math.round(color.green * 255);
+                    let b = Math.round(color.blue * 255);
+                    let a = Math.round(color.alpha * 255);
+
+                    formatted = `Color.rgba(${r}, ${g}, ${b}, ${a})`;
+                }
+            }
+
+            if (formatted === undefined) { return []; }
+
+            return [new vscode.ColorPresentation(formatted)];
+        },
+        provideDocumentColors(document, token) {
+            let ranges = matchRGBA(document);
+            ranges.push(...matchOf(document));
+            ranges.push(...matchPredefined(document));
+            ranges.push(...matchDirect(document));
+            ranges.push(...matchColor(document));
+            return ranges;
+        }
+    };
 }

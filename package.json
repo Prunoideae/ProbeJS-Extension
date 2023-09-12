@@ -18,6 +18,10 @@
       {
         "command": "probejs.reload",
         "title": "ProbeJS: Reload item attributes"
+      },
+      {
+        "command": "probejs.lookup",
+        "title": "ProbeJS: Lookup event documents"
       }
     ]
   },
