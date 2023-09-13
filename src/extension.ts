@@ -67,6 +67,7 @@ export function activate(context: vscode.ExtensionContext) {
 		collector.collectFluid(fluidAttributes);
 		collector.collectTag(tagsPath);
 		collector.collectLangKeys(langPath);
+		collector.collectIcons(iconPath);
 		collector.buildCompletions(workspace);
 	}));
 }

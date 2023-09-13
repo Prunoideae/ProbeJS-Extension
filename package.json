@@ -2,7 +2,7 @@
   "name": "probejs",
   "displayName": "ProbeJS",
   "description": "Supplying Rich Completion Display for ProbeJS",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "engines": {
     "vscode": "^1.78.0"
   },
@@ -18,10 +18,6 @@
       {
         "command": "probejs.reload",
         "title": "ProbeJS: Reload item attributes"
-      },
-      {
-        "command": "probejs.lookup",
-        "title": "ProbeJS: Lookup event documents"
       }
     ]
   },

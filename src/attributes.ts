@@ -197,20 +197,23 @@ export class LanguageAttribute {
 
         let missingTranslations = [];
 
+        let is1201 = this.languages["English"] !== undefined;
+        let defaultKey = is1201 ? "English" : "en_us";
+
         // append a table with `lang` and `translation`
         md.appendMarkdown(`| Language | Translation |\n`);
         md.appendMarkdown(`| -------- | ----------- |\n`);
         // append the selected language
         md.appendMarkdown(`| **${this.selected}** | **${this.languages[this.selected]}** |\n`);
 
-        if (this.languages[this.selected] === this.languages['en_us']) {
+        if (this.languages[this.selected] === this.languages[defaultKey]) {
             missingTranslations.push(this.selected);
         }
 
         // append the rest of the languages
         for (const lang in this.languages) {
-            if (lang !== this.selected && lang !== "en_us") {
-                if (this.languages[lang] !== this.languages['en_us']) {
+            if (lang !== this.selected && lang !== defaultKey) {
+                if (this.languages[lang] !== this.languages[defaultKey]) {
                     md.appendMarkdown(`| ${lang} | ${this.languages[lang]} |\n`);
                 } else {
                     missingTranslations.push(lang);
@@ -218,11 +221,11 @@ export class LanguageAttribute {
             }
         }
         // append the en_us as fallback
-        if (this.selected !== "en_us") {
-            md.appendMarkdown(`| en_us | ${this.languages["en_us"]} |\n`);
+        if (this.selected !== defaultKey) {
+            md.appendMarkdown(`| ${defaultKey} | ${this.languages[defaultKey]} |\n`);
         }
 
-        if (missingTranslations.length > 0 && !this.selected.startsWith("en")) {
+        if (missingTranslations.length > 0 && !this.selected.startsWith(defaultKey.substring(0, 2))) {
             md.appendMarkdown(`\n\n**Missing Translations: ${missingTranslations.join(", ")}**`);
         }
 

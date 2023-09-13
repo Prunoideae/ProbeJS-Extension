@@ -2,6 +2,12 @@
 
 All notable changes to the "ProbeJS" extension will be documented in this file.
 
+## [v0.0.7]
+
+- Added support for KubeJS 1.20.1.
+- Changed how rich hover reads the image to make it work for both 1.20.1 and 1.19.2.
+- Added support for automatic display of documentation for KubeJS events.
+
 ## [v0.0.6]
 
 - Added support for fluid rendering.
