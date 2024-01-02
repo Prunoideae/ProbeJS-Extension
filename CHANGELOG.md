@@ -2,6 +2,9 @@
 
 All notable changes to the "ProbeJS" extension will be documented in this file.
 
+## [v0.0.8]
+- Added command `ProbeJS: Populate Unlocalized Strings` to insert unlocalized strings (en_us) into current opened file.
+
 ## [v0.0.7]
 
 - Added support for KubeJS 1.20.1.

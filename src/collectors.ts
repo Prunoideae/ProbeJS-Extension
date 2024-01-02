@@ -131,6 +131,10 @@ export class Collector {
         return this.itemTags;
     }
 
+    public getLangs(): LanguageAttribute[] {
+        return this.langKeys;
+    }
+
     public getItemCompletions(): vscode.CompletionItem[] {
         return this.itemCompletions;
     }

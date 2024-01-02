@@ -17,3 +17,5 @@ Also includes some other features like color picking.
 ![Image](./examples/1.png)
 
 ![Image](./examples/2.gif)
+
+![Image](./examples/3.gif)

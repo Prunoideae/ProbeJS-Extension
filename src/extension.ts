@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { Collector } from './collectors';
 import { getColors } from './colors';
+import * as commands from './commands';
 import { provideDefinition, provideEventHover } from './definitions';
 import * as fs from 'fs';
 
@@ -61,15 +62,17 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.window.showWarningMessage("ProbeJS: Some attribute files are not found. Things might not work.");
 	}
 
-	context.subscriptions.push(vscode.commands.registerCommand("probejs.reload", () => {
-		collector.clear();
-		collector.collectItem(itemAttributes);
-		collector.collectFluid(fluidAttributes);
-		collector.collectTag(tagsPath);
-		collector.collectLangKeys(langPath);
-		collector.collectIcons(iconPath);
-		collector.buildCompletions(workspace);
-	}));
+	context.subscriptions.push(
+		commands.reloadAll(
+			collector,
+			itemAttributes, fluidAttributes,
+			tagsPath, langPath, iconPath,
+			workspace
+		));
+
+	context.subscriptions.push(
+		commands.populateLang(collector)
+	);
 }
 
 // This method is called when your extension is deactivated
