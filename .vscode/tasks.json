@@ -13,8 +13,17 @@
 			},
 			"group": {
 				"kind": "build",
-				"isDefault": true
+				"isDefault": false
 			}
+		},
+		{
+			"label": "build",
+			"type": "shell",
+			"command": "vsce package",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
 		}
 	]
 }

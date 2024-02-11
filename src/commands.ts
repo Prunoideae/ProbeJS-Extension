@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { Collector } from './collectors';
-
+import * as repl from './repl';
 
 export function reloadAll(collector: Collector,
     item: vscode.Uri,
@@ -41,5 +41,11 @@ export function populateLang(collector: Collector): vscode.Disposable {
                 snippet.appendText(index === arr.length - 1 ? '"' : '",\n');
             });
         text.insertSnippet(snippet);
+    });
+}
+
+export function createRepl(context: vscode.ExtensionContext, port:number): vscode.Disposable {
+    return vscode.commands.registerCommand("probejs.createRepl", async () => {
+        await repl.createRepl(context, port);
     });
 }

@@ -1,0 +1,35 @@
+vscode-text-field {
+	margin-top: 10px;
+	width: 100%;
+}
+
+vscode-dropdown {
+	width: 40%;
+	padding-right: 2%;
+	padding-left: 0%;
+	margin-top: 10px;
+}
+
+hr.solid {
+	margin-top: 10px;
+	border-radius: 1px;
+	border-top: 2px solid var(--vscode-input-background);
+}
+
+.repl-input {
+	padding: 3px;
+	background-color: var(--vscode-input-placeholderForeground);
+	white-space: pre-wrap;
+}
+
+.repl-output {
+	padding: 3px;
+	background-color: var(--vscode-input-background);
+	white-space: pre-wrap;
+}
+
+.repl-container {
+	display: flex;
+	flex-direction: column;
+	padding-top: 10px;
+}

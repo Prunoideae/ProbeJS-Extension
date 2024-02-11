@@ -39,7 +39,7 @@ function matchRGBA(document: TextDocument): ColorInformation[] {
 }
 
 function matchOf(document: TextDocument): ColorInformation[] {
-    // lazy match `Color.of(...)`, where ... can be an float or a `#XXXXXX` / `#XXXXXXXX` hex color
+    // lazy match `Color.of(...)`, where ... can be an float or a `#******` / `#********` hex color
     // the `...` part is captured
     let regex = /Color\.of\((\d+\.?\d*|\d+|(["`'])#[0-9a-fA-F]{6}(["`'])|(["`'])#[0-9a-fA-F]{8}(["`']))\)/g;
 
@@ -70,7 +70,7 @@ function matchOf(document: TextDocument): ColorInformation[] {
         b /= 255;
         a /= 255;
 
-        // if it is #XXXXXX, set alpha to 1
+        // if it is #******, set alpha to 1
         if (color[0].startsWith("#") && color[0].length === 7) {
             a = 1;
         }

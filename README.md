@@ -11,11 +11,10 @@ Also includes some other features like color picking.
 - Display rich information for fluids, including fluid texture, having bucket/block and translated name. Triggered by hovering over a fluid string, like `"minecraft:water"`.
 - Display information for translations, `en_us` and currently selected language, as well as other languages having a similar region code will be displayed. Triggered by hovering over a translation string, like `"block.minecraft.stone"`.
 - Color picking for `Color.of` and `Color.rgba`. When `Color.` is typed, it will also show a color picker for shorthanding.
+- Runtime console for KubeJS. Triggered by command `ProbeJS: Create Console` (requires ProbeJS v6.0.0+).
 
 ## Examples
 
 ![Image](./examples/1.png)
 
-![Image](./examples/2.gif)
-
-![Image](./examples/3.gif)
+![Image](./examples/4.gif)

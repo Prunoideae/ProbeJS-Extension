@@ -61,7 +61,7 @@ export class ItemAttribute {
     }
 
     public getMarkdown(baseUri: Uri, iconMap: Map<string, string>): MarkdownString {
-        const md = new MarkdownString("### " + this.localized ?? this.id);
+        const md = new MarkdownString("### " + (this.localized ?? this.id));
         md.baseUri = baseUri;
 
         if (iconMap !== undefined && iconMap.size !== 0) {
@@ -153,7 +153,7 @@ export class FluidAttribute {
     }
 
     public getMarkdown(baseUri: Uri, fluidIconMap: Map<string, string>, itemIconMap: Map<string, string>): MarkdownString {
-        const md = new MarkdownString("### " + this.localized ?? this.id);
+        const md = new MarkdownString("### " + (this.localized ?? this.id));
         md.baseUri = baseUri;
 
         if (fluidIconMap !== undefined && fluidIconMap.size !== 0) {

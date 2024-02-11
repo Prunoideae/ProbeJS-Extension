@@ -2,6 +2,13 @@
 
 All notable changes to the "ProbeJS" extension will be documented in this file.
 
+## [v0.1.0]
+- Added command `ProbeJS: Create Console` to create a runtime console for KubeJS. (requires ProbeJS v6.0.0+)
+- Reconfigured `.vscodeignore` to ignore some unnecessary files.
+
+## [v0.0.9]
+- Extension now watches for changes in `.vscode` folder and reloads the attribute files automatically.
+
 ## [v0.0.8]
 - Added command `ProbeJS: Populate Unlocalized Strings` to insert unlocalized strings (en_us) into current opened file.
 

@@ -2,7 +2,7 @@
   "name": "probejs",
   "displayName": "ProbeJS",
   "description": "Supplying Rich Completion Display for ProbeJS",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "engines": {
     "vscode": "^1.78.0"
   },
@@ -10,7 +10,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage"
+    "onLanguage:javascript"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -22,12 +22,18 @@
       {
         "command": "probejs.populateLang",
         "title": "ProbeJS: Populate Unlocalized Strings"
+      },
+      {
+        "command": "probejs.createRepl",
+        "title": "ProbeJS: Create Console"
       }
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
+    "vscode:prepublish": "npm run package",
+    "compile": "node ./esbuild.js",
+    "package": "node ./esbuild.js",
+    "test-compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
@@ -38,9 +44,11 @@
     "@types/mocha": "^10.0.1",
     "@types/node": "16.x",
     "@types/vscode": "^1.78.0",
+    "@types/ws": "^8.5.10",
     "@typescript-eslint/eslint-plugin": "^5.59.1",
     "@typescript-eslint/parser": "^5.59.1",
     "@vscode/test-electron": "^2.3.0",
+    "esbuild": "^0.16.17",
     "eslint": "^8.39.0",
     "glob": "^8.1.0",
     "mocha": "^10.2.0",
@@ -54,6 +62,7 @@
   "icon": "icon.png",
   "publisher": "Prunoideae",
   "dependencies": {
-    "@octokit/rest": "^20.0.2"
+    "@vscode/webview-ui-toolkit": "^1.4.0",
+    "ws": "^8.16.0"
   }
 }
