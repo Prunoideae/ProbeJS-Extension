@@ -99,11 +99,21 @@ export class TagAttribute {
     id!: `${string}:${string}`;
     items!: string[];
 
-    private getImagePath(id: string): string {
+    private getImagePath(id: string): (string | null) {
         let [base, loc] = id.split(":");
         loc = loc.replace("/", "_");
+        //check general icons
         let path = `./kubejs/probe/cache/rich/${base}/${loc}.png`;
-        return fs.existsSync(path) ? path : `./kubejs/probe/cache/rich/item/${base}/${loc}.png`;
+        if (fs.existsSync(path)) {
+            return path;
+        }
+        //check item icons
+        path = `./kubejs/probe/cache/rich/item/${base}/${loc}.png`;
+        if (fs.existsSync(path)) {
+            return path
+        }
+        //no matched path
+        return null;
     }
 
     private getImageMarkdowns(iconMap: Map<string, string>): string {
