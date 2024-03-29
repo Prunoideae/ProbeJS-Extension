@@ -99,17 +99,30 @@ export class TagAttribute {
     id!: `${string}:${string}`;
     items!: string[];
 
-    private getImagePath(id: string): string {
+    private getImagePath(id: string): (string | null) {
         let [base, loc] = id.split(":");
         loc = loc.replace("/", "_");
+        //check general icons
         let path = `./kubejs/probe/cache/rich/${base}/${loc}.png`;
-        return fs.existsSync(path) ? path : `./kubejs/probe/cache/rich/item/${base}/${loc}.png`;
+        if (fs.existsSync(path)) {
+            return path;
+        }
+        //check item icons
+        path = `./kubejs/probe/cache/rich/item/${base}/${loc}.png`;
+        if (fs.existsSync(path)) {
+            return path
+        }
+        //no matched path
+        return null;
     }
 
     private getImageMarkdowns(iconMap: Map<string, string>): string {
         let itemMds = iconMap.size !== 0 ?
             this.items.map((item) => `![Image](${iconMap.get(item)})`) :
-            this.items.map((item) => `![Image](${this.getImagePath(item)})`);
+            this.items.map((item) => {
+                let path = this.getImagePath(item);
+                return path === null ? `**${item}**` : `![Image](${path})`
+            });
 
         // start a new line for every 6 items, max at 12 in total
         for (let i = 6; i < itemMds.length; i += 6) {
