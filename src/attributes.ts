@@ -119,7 +119,10 @@ export class TagAttribute {
     private getImageMarkdowns(iconMap: Map<string, string>): string {
         let itemMds = iconMap.size !== 0 ?
             this.items.map((item) => `![Image](${iconMap.get(item)})`) :
-            this.items.map((item) => `![Image](${this.getImagePath(item)})`);
+            this.items.map((item) => {
+                let path = this.getImagePath(item);
+                return path === null ? `**${item}**` : `![Image](${path})`
+            });
 
         // start a new line for every 6 items, max at 12 in total
         for (let i = 6; i < itemMds.length; i += 6) {
