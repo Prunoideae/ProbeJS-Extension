@@ -1,8 +1,8 @@
 {
   "name": "probejs",
   "displayName": "ProbeJS",
-  "description": "Supplying Rich Completion Display for ProbeJS",
-  "version": "0.0.9",
+  "description": "VSCode-Minecraft interop for ProbeJS",
+  "version": "0.2.0",
   "engines": {
     "vscode": "^1.78.0"
   },
@@ -14,20 +14,7 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "probejs.reload",
-        "title": "ProbeJS: Reload Item Attributes"
-      },
-      {
-        "command": "probejs.populateLang",
-        "title": "ProbeJS: Populate Unlocalized Strings"
-      },
-      {
-        "command": "probejs.createRepl",
-        "title": "ProbeJS: Create Console"
-      }
-    ]
+    "commands": []
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
@@ -62,7 +49,6 @@
   "icon": "icon.png",
   "publisher": "Prunoideae",
   "dependencies": {
-    "@vscode/webview-ui-toolkit": "^1.4.0",
     "ws": "^8.16.0"
   }
 }

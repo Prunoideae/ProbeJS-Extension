@@ -1,107 +1,70 @@
 import * as vscode from 'vscode';
-import { Collector } from './collectors';
-import { getColors } from './colors';
-import * as commands from './commands';
-import { provideDefinition, provideEventHover } from './definitions';
-import * as fs from 'fs';
-import { Config } from './config';
+import { ProbeClient } from './bridge';
+import { ProbeJSProject } from './project';
+import { JavaSourceProvider } from './lens';
+import { ErrorSync } from './errorSync';
+
+let probeClient: ProbeClient | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
 	let ws = vscode.workspace.workspaceFolders;
 	if (!ws) { return; }
+
+
 	let workspace = ws[0].uri;
+	let project = new ProbeJSProject(workspace);
+	let config = project.probeJSConfig;
+	if (!config) { return; }
 
-	let itemAttributes = workspace.with({ path: workspace.path + "/.vscode/item-attributes.json" });
-	let iconPath = workspace.with({
-		path: workspace.fsPath + "/" + fs.readdirSync(workspace.fsPath).find((item) => item.startsWith("icon-exports-"))
-	});
+	if (config['probejs.interactive']) {
+		let port = project.probeJSConfig['probejs.interactivePort'] ?? 7796;
+		probeClient = new ProbeClient(port);
 
-	let fluidAttributes = workspace.with({ path: workspace.path + "/.vscode/fluid-attributes.json" });
-	let tagsPath = workspace.with({ path: workspace.path + "/.vscode/item-tag-attributes.json" });
-	let langPath = workspace.with({ path: workspace.path + "/.vscode/lang-keys.json" });
-	let groupsPath = workspace.with({ path: workspace.path + "/local/kubejs/event_groups" });
-
-	let config = workspace.with({ path: workspace.path + "/kubejs/config/probejs.json" });
-	let configData = Config.fromData(JSON.parse(fs.readFileSync(config.fsPath, "utf-8")));
-	console.log(configData);
-	if (!configData.enabled) { return; }
-
-	if (configData.isInteractiveValid()) {
-		if (configData.interactiveMode === 0) {
-			configData.interactiveMode = 1;
-			vscode.window.showInformationMessage("ProbeJS: Interactive mode is enabled. You can now use the REPL after reloading game.");
-			fs.writeFileSync(config.fsPath, JSON.stringify(configData.overwrite(JSON.parse(fs.readFileSync(config.fsPath, "utf-8"))), null, 4));
-		}
-
-		// won't start if mode is not 1 e.g. manually disabled
-		if (configData.interactiveMode === 1) {
-			context.subscriptions.push(
-				commands.createRepl(context, configData.port)
-			);
-		}
-	}
-
-	// TODO: Read config to get the ws server status and port
-	const collector = new Collector();
-	let collected = true;
-	collector.collectIcons(iconPath);
-	collected &&= collector.collectItem(itemAttributes);
-	collected &&= collector.collectFluid(fluidAttributes);
-	collected &&= collector.collectTag(tagsPath);
-	collected &&= collector.collectLangKeys(langPath);
-
-	collector.buildCompletions(workspace);
-
-	// Should cover all languages that are used in the Minecraft modpack development
-	let languages = ["javascript", "json", "zenscript", "plaintext", "toml", "yaml"];
-
-	languages.forEach((lang) => {
-		context.subscriptions.push(vscode.languages.registerHoverProvider(lang, {
-			provideHover(document, position) {
-				var range = document.getWordRangeAtPosition(position, /(["`'])((?:\\\1|(?:(?!\1)).)*)(\1)/);
-				if (!range) { return undefined; }
-				var word = document.getText(range);
-				// strip quotes
-				word = word.substring(1, word.length - 1);
-
-				// if the word is `{number}x {item}`, remove the number and the x
-				if (word.match(/^\d+x /)) {
-					word = word.substring(word.indexOf(" ") + 1);
-				}
-
-				return collector.getHover(word, workspace);
+		probeClient.on("accept_items", (data: string[]) => {
+			let dataString = "";
+			if (data.length === 1) {
+				dataString = data[0];
+			} else {
+				dataString = `[${data.join(", ")}]`;
 			}
-		}));
-	});
+			// check if current cursor is next to ), if is then add a comma
+			let editor = vscode.window.activeTextEditor;
+			let cursorPosition = editor?.selection.active;
+			let line = editor?.document.lineAt(cursorPosition!);
+			let lineText = line?.text;
+			let nextChar = lineText?.charAt(cursorPosition!.character);
+			if (nextChar === ")") {
+				dataString += ", ";
+			}
+			vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(dataString));
+		});
 
-	context.subscriptions.push(vscode.languages.registerDefinitionProvider("javascript", provideDefinition(groupsPath)));
-	context.subscriptions.push(vscode.languages.registerHoverProvider("javascript", provideEventHover(groupsPath)));
-	context.subscriptions.push(vscode.languages.registerColorProvider("javascript", getColors()));
+		vscode.commands.registerCommand('probejs.reconnect', () => {
+			probeClient?.close();
+			probeClient?.connect(port);
+		});
 
-	if (!collected) {
-		// warn vscode user that the attributes file is not found
-		vscode.window.showWarningMessage("ProbeJS: Some attribute files are not found. Things might not work.");
+		let provider = new JavaSourceProvider(project.decompiledPath);
+		vscode.languages.registerCodeLensProvider('javascript', provider);
+		vscode.commands.registerCommand('probejs.jumpToSource', provider.jumpToSource.bind(provider));
+
+		let sync = new ErrorSync(probeClient);
+
+		// hello vscode!
+		vscode.window.showInformationMessage('ProbeJS Extension is now active!');
+	} else {
+		if (config['probejs.interactive'] === undefined) {
+			project.enableProbeJS();
+			vscode.window.showInformationMessage('ProbeJS Extension has been enabled! Please reload the game and VSCode to start using it.');
+		} else {
+			vscode.window.showInformationMessage('ProbeJS Extension is not enabled. You can enable it by using `/probejs interactive` in the game.');
+		}
 	}
-
-	if (collected) {
-		context.subscriptions.push(
-			vscode.workspace.createFileSystemWatcher(workspace.fsPath + "/.vscode/*").onDidChange(() => {
-				vscode.commands.executeCommand("probejs.reload");
-			}));
-	}
-
-	context.subscriptions.push(
-		commands.reloadAll(
-			collector,
-			itemAttributes, fluidAttributes,
-			tagsPath, langPath, iconPath,
-			workspace
-		));
-
-	context.subscriptions.push(
-		commands.populateLang(collector)
-	);
 }
 
-// This method is called when your extension is deactivated
-export function deactivate() { }
+
+export function deactivate() {
+	if (probeClient) {
+		probeClient.close();
+	}
+}
