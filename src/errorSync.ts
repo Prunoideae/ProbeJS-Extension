@@ -19,9 +19,16 @@ export class ErrorSync {
             message: string;
         }) => {
             const uri = vscode.Uri.file(data.file);
-            const range = new vscode.Range(data.line, data.column, data.line, data.column);
+            // mark the entire line
+            const range = new vscode.Range(data.line - 1, 0, data.line - 1, Number.MAX_VALUE);
             const diagnostic = new vscode.Diagnostic(range, data.message, this.getSeverity(data.level));
-            this.collection.set(uri, [diagnostic]);
+
+            if (!this.collection.has(uri)) {
+                this.collection.set(uri, [diagnostic]);
+            } else {
+                let diagnostics = this.collection.get(uri);
+                this.collection.set(uri, [...diagnostics!, diagnostic]);
+            }
         });
 
         bridge.on('clear_error', () => {
