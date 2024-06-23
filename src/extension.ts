@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
 import { ProbeClient } from './bridge';
 import { ProbeJSProject } from './project';
-import { JavaSourceProvider } from './lens';
+import { JavaSourceProvider, StacktraceSourceProvider } from './lens';
 import { ErrorSync } from './errorSync';
+import { ProbeDecorator } from './decoration';
 
 let probeClient: ProbeClient | undefined;
 
@@ -10,11 +11,23 @@ export function activate(context: vscode.ExtensionContext) {
 	let ws = vscode.workspace.workspaceFolders;
 	if (!ws) { return; }
 
-
 	let workspace = ws[0].uri;
 	let project = new ProbeJSProject(workspace);
 	let config = project.probeJSConfig;
 	if (!config) { return; }
+
+	const probeDecorator = new ProbeDecorator();
+	vscode.window.onDidChangeActiveTextEditor(editor => {
+		if (editor) {
+			probeDecorator.editor = editor;
+			probeDecorator.decorate();
+		}
+	});
+	vscode.workspace.onDidChangeTextDocument(event => {
+		if (vscode.window.activeTextEditor && event.document === vscode.window.activeTextEditor.document) {
+			probeDecorator.decorate();
+		}
+	});
 
 	if (config['probejs.interactive']) {
 		let port = project.probeJSConfig['probejs.interactivePort'] ?? 7796;
@@ -47,6 +60,9 @@ export function activate(context: vscode.ExtensionContext) {
 		let provider = new JavaSourceProvider(project.decompiledPath);
 		vscode.languages.registerCodeLensProvider('javascript', provider);
 		vscode.commands.registerCommand('probejs.jumpToSource', provider.jumpToSource.bind(provider));
+		let traceProvider = new StacktraceSourceProvider(project.decompiledPath);
+		vscode.languages.registerCodeLensProvider('plaintext', traceProvider);
+		vscode.commands.registerCommand('probejs.jumpToStackSource', traceProvider.jumpToSource.bind(traceProvider));
 
 		let sync = new ErrorSync(probeClient);
 

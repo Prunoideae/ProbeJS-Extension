@@ -13,7 +13,7 @@ function randomNonce(): string {
 export class ProbeClient {
     private _ws: WebSocket | undefined;
     private _sentCommands: Map<string, [(result: any) => void, (error: any) => void]> = new Map();
-    private _eventHandlers: Map<string, (event: any) => void> = new Map();
+    private _eventHandlers: Map<string, ((event: any) => void)[]> = new Map();
     private _connected = false;
     private _statusBar: vscode.StatusBarItem;
 
@@ -30,6 +30,10 @@ export class ProbeClient {
     }
 
     public connect(port: number) {
+        if (this._ws) {
+            this._ws.close();
+        }
+
         this._ws = new WebSocket(`ws://localhost:${port}`, {
             timeout: 1,
         });
@@ -58,18 +62,27 @@ export class ProbeClient {
                 const handler = this._eventHandlers.get(event);
 
                 if (handler) {
-                    handler(response.payload);
+                    handler.forEach(h => h(response.payload));
                 }
             }
         });
 
         this._ws.on('close', () => {
+            let handler = this._eventHandlers.get('close');
+            if (handler) {
+                handler.forEach(h => h({}));
+            }
+
             this._connected = false;
             this._statusBar.text = '$(debug-disconnect) Click to reconnect to ProbeJS...';
             this._statusBar.color = 'yellow';
         });
 
         this._ws.on('error', (error) => {
+            let handler = this._eventHandlers.get('error');
+            if (handler) {
+                handler.forEach(h => h(error));
+            }
             this._connected = false;
             this._statusBar.text = '$(debug-disconnect) Click to reconnect to ProbeJS...';
             this._statusBar.color = 'red';
@@ -105,7 +118,10 @@ export class ProbeClient {
     }
 
     public on(event: string, callback: (event: any) => void) {
-        this._eventHandlers.set(event, callback);
+        if (!this._eventHandlers.has(event)) {
+            this._eventHandlers.set(event, []);
+        }
+        this._eventHandlers.get(event)!.push(callback);
     }
 
     public close() {

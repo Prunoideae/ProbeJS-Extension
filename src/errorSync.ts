@@ -31,7 +31,30 @@ export class ErrorSync {
             }
         });
 
+        bridge.on('accept_error_no_line', (data: {
+            message: string,
+            stackTrace: string[]
+        }) => {
+            // Show a message box with the error and a button to open
+            // the stack trace
+            vscode.window.showErrorMessage(data.message, 'Show Stack Trace')
+                .then((value) => {
+                    if (value === 'Show Stack Trace') {
+                        let formattedError = `${data.message}\n\nStacktrace:\n${data.stackTrace.map(s => "\t" + s).join('\n')}`;
+                        vscode.workspace.openTextDocument({
+                            content: formattedError,
+                        }).then(doc => {
+                            vscode.window.showTextDocument(doc, vscode.ViewColumn.Active);
+                        });
+                    }
+                });
+        });
+
         bridge.on('clear_error', () => {
+            this.collection.clear();
+        });
+
+        bridge.on('close', () => {
             this.collection.clear();
         });
     }
