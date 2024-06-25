@@ -104,7 +104,11 @@ export class ProbeClient {
         };
     }
 
-    public async command<T>(command: string, payload: any): Promise<T> {
+    public async command<T>(command: string, payload: {}): Promise<T> {
+        if (!this._connected) {
+            vscode.window.showErrorMessage('ProbeJS is not connected');
+            return Promise.reject('ProbeJS is not connected');
+        }
         const constructedPayload = this.constructPayload(command, payload);
         return new Promise((resolve, reject) => {
             if (!this._ws) {

@@ -1,13 +1,23 @@
 import * as vscode from "vscode";
 import { ProbeClient } from "./bridge";
 
-export class ErrorSync {
+export class InfoSync {
 
     private collection: vscode.DiagnosticCollection;
 
     constructor(private readonly bridge: ProbeClient) {
         this.collection = vscode.languages.createDiagnosticCollection("probejs");
         this.connect(bridge);
+    }
+
+    public addDiagnostic(uri: vscode.Uri, diagnostic: vscode.Diagnostic) {
+        if (!this.collection.has(uri)) {
+            this.collection.set(uri, [diagnostic]);
+        } else {
+            const diagnostics = this.collection.get(uri)
+                ?.filter(v => v.range.start.line !== diagnostic.range.start.line);
+            this.collection.set(uri, [...diagnostics!, diagnostic]);
+        }
     }
 
     private connect(bridge: ProbeClient) {
@@ -23,12 +33,7 @@ export class ErrorSync {
             const range = new vscode.Range(data.line - 1, 0, data.line - 1, Number.MAX_VALUE);
             const diagnostic = new vscode.Diagnostic(range, data.message, this.getSeverity(data.level));
 
-            if (!this.collection.has(uri)) {
-                this.collection.set(uri, [diagnostic]);
-            } else {
-                let diagnostics = this.collection.get(uri);
-                this.collection.set(uri, [...diagnostics!, diagnostic]);
-            }
+            this.addDiagnostic(uri, diagnostic);
         });
 
         bridge.on('accept_error_no_line', (data: {

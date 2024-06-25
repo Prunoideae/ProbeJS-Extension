@@ -1,9 +1,12 @@
 import * as vscode from 'vscode';
 import { ProbeClient } from './bridge';
 import { ProbeJSProject } from './project';
-import { JavaSourceProvider, StacktraceSourceProvider } from './lens';
-import { ErrorSync } from './errorSync';
+import { JavaSourceProvider, StacktraceSourceProvider } from './jumpToSource';
+import { InfoSync } from './errorSync';
 import { ProbeDecorator } from './decoration';
+import { setupInsertions } from './insertions';
+import { ReloadProvider } from './reload';
+import { EvaluateProvider } from './evaluate';
 
 let probeClient: ProbeClient | undefined;
 
@@ -16,7 +19,11 @@ export function activate(context: vscode.ExtensionContext) {
 	let config = project.probeJSConfig;
 	if (!config) { return; }
 
-	const probeDecorator = new ProbeDecorator();
+	const probeDecorator = new ProbeDecorator(workspace);
+	if (vscode.window.activeTextEditor) {
+		probeDecorator.editor = vscode.window.activeTextEditor;
+		probeDecorator.decorate();
+	}
 	vscode.window.onDidChangeActiveTextEditor(editor => {
 		if (editor) {
 			probeDecorator.editor = editor;
@@ -33,38 +40,28 @@ export function activate(context: vscode.ExtensionContext) {
 		let port = project.probeJSConfig['probejs.interactivePort'] ?? 7796;
 		probeClient = new ProbeClient(port);
 
-		probeClient.on("accept_items", (data: string[]) => {
-			let dataString = "";
-			if (data.length === 1) {
-				dataString = data[0];
-			} else {
-				dataString = `[${data.join(", ")}]`;
-			}
-			// check if current cursor is next to ), if is then add a comma
-			let editor = vscode.window.activeTextEditor;
-			let cursorPosition = editor?.selection.active;
-			let line = editor?.document.lineAt(cursorPosition!);
-			let lineText = line?.text;
-			let nextChar = lineText?.charAt(cursorPosition!.character);
-			if (nextChar === ")") {
-				dataString += ", ";
-			}
-			vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(dataString));
-		});
+		setupInsertions(probeClient);
 
 		vscode.commands.registerCommand('probejs.reconnect', () => {
 			probeClient?.close();
 			probeClient?.connect(port);
 		});
 
-		let provider = new JavaSourceProvider(project.decompiledPath);
-		vscode.languages.registerCodeLensProvider('javascript', provider);
-		vscode.commands.registerCommand('probejs.jumpToSource', provider.jumpToSource.bind(provider));
+		let jumpSourceProvider = new JavaSourceProvider(project.decompiledPath);
+		vscode.languages.registerCodeLensProvider('javascript', jumpSourceProvider);
+		vscode.commands.registerCommand('probejs.jumpToSource', jumpSourceProvider.jumpToSource.bind(jumpSourceProvider));
 		let traceProvider = new StacktraceSourceProvider(project.decompiledPath);
 		vscode.languages.registerCodeLensProvider('plaintext', traceProvider);
 		vscode.commands.registerCommand('probejs.jumpToStackSource', traceProvider.jumpToSource.bind(traceProvider));
 
-		let sync = new ErrorSync(probeClient);
+		let reloadProvider = new ReloadProvider(probeClient);
+		vscode.languages.registerCodeLensProvider('javascript', reloadProvider);
+		vscode.commands.registerCommand('probejs.reloadScript', reloadProvider.reloadScript.bind(reloadProvider));
+
+		let sync = new InfoSync(probeClient);
+		let evaluateProvider = new EvaluateProvider(probeClient, sync);
+		vscode.languages.registerCodeLensProvider('javascript', evaluateProvider);
+		vscode.commands.registerCommand('probejs.evaluate', evaluateProvider.evaluate.bind(evaluateProvider));
 
 		// hello vscode!
 		vscode.window.showInformationMessage('ProbeJS Extension is now active!');
