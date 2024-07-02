@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { readFileSync, writeFileSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync } from 'fs';
 import * as vscode from 'vscode';
 
 interface ProbeJSConfig {
@@ -28,6 +28,10 @@ export class ProbeJSProject {
 
     get probeJSConfigPath(): vscode.Uri {
         return this.withPath("kubejs/config/probe-settings.json");
+    }
+
+    get configAvailable(): boolean {
+        return existsSync(this.probeJSConfigPath.fsPath);
     }
 
     get probeJSConfig(): ProbeJSConfig {

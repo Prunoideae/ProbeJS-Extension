@@ -16,8 +16,9 @@ export function activate(context: vscode.ExtensionContext) {
 
 	let workspace = ws[0].uri;
 	let project = new ProbeJSProject(workspace);
+	if (!project.configAvailable) { return; }
 	let config = project.probeJSConfig;
-	if (!config) { return; }
+
 
 	const probeDecorator = new ProbeDecorator(workspace);
 	if (vscode.window.activeTextEditor) {
@@ -37,7 +38,7 @@ export function activate(context: vscode.ExtensionContext) {
 	});
 
 	if (config['probejs.interactive']) {
-		let port = project.probeJSConfig['probejs.interactivePort'] ?? 7796;
+		let port = config['probejs.interactivePort'] ?? 7796;
 		probeClient = new ProbeClient(port);
 
 		setupInsertions(probeClient);

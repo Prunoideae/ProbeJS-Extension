@@ -27,6 +27,10 @@ export class EvaluateProvider implements vscode.CodeLensProvider {
     provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.ProviderResult<vscode.CodeLens[]> {
         const codeLenses: vscode.CodeLens[] = [];
 
+        if (!document.uri.fsPath.includes('test')) {
+            return codeLenses;
+        }
+
         let scriptType;
         if (document.uri.fsPath.includes('server_scripts')) {
             scriptType = "server_scripts";

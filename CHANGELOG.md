@@ -2,14 +2,26 @@
 
 All notable changes to the "ProbeJS" extension will be documented in this file.
 
+## [v0.2.0]
+
+- **Does not work with pre-1.21 ProbeJS due to completely rewritten.**
+- Can highlight script properties like `// priority:` now.
+- Can insert item/blockstate strings by activating `Kubedex` from a connected Minecraft instance.
+- Can reload scripts from VSCode directly.
+- Can catch error, warning and info from connected Minecraft instance and display them at corresponding line of the scripts.
+- For scripts in `test/` folder, or has `test` in their path (including file name), you can `Evaluate` functions without params, or variables, at anytime.
+
 ## [v0.1.0]
+
 - Added command `ProbeJS: Create Console` to create a runtime console for KubeJS. (requires ProbeJS v6.0.0+)
 - Reconfigured `.vscodeignore` to ignore some unnecessary files.
 
 ## [v0.0.9]
+
 - Extension now watches for changes in `.vscode` folder and reloads the attribute files automatically.
 
 ## [v0.0.8]
+
 - Added command `ProbeJS: Populate Unlocalized Strings` to insert unlocalized strings (en_us) into current opened file.
 
 ## [v0.0.7]

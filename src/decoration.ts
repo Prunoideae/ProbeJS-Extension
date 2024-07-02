@@ -37,6 +37,10 @@ export class ProbeDecorator {
             color: 'rgba(255, 255, 255, 0.5)'
         }
     });
+
+    // We insert icon here, so no need to decorate the string with different style
+    private readonly _styleJSString = vscode.window.createTextEditorDecorationType({});
+
     private _textEditor: vscode.TextEditor | undefined;
 
     constructor(private readonly path: vscode.Uri) {
@@ -53,6 +57,8 @@ export class ProbeDecorator {
         }
         const text = this._textEditor.document.getText();
         const decorations: vscode.DecorationOptions[] = [];
+        const stringDecorations: vscode.DecorationOptions[] = [];
+
         let match;
         while ((match = this._matcher.exec(text)) !== null) {
             const startPos = this._textEditor.document.positionAt(match.index);
@@ -60,7 +66,9 @@ export class ProbeDecorator {
             // const path = Uri.file(this.path.with({ path: this.path.fsPath + '\\test.gif' }).fsPath);
 
             const decoration: vscode.DecorationOptions = {
-                range: new vscode.Range(startPos, endPos), hoverMessage: 'This is a KubeJS script property.',
+                range: new vscode.Range(startPos, endPos),
+                hoverMessage: 'This is a KubeJS script property.',
+
                 // renderOptions: {
                 //     before: {
                 //         contentIconPath: path,
@@ -73,20 +81,25 @@ export class ProbeDecorator {
             decorations.push(decoration);
         }
 
-        // while ((match = this._matcherJSString.exec(text)) !== null) {
-        //     const startPos = this._textEditor.document.positionAt(match.index);
-        //     const endPos = this._textEditor.document.positionAt(match.index + match[0].length);
-        //     // replace only the start and end single quotes to double quotes
-        //     let content = match[0].replace(/(^['"])|(['"]$)/g, '"');
-        //     content = JSON.parse(content);
+        while ((match = this._matcherJSString.exec(text)) !== null) {
+            const startPos = this._textEditor.document.positionAt(match.index);
+            const endPos = this._textEditor.document.positionAt(match.index + match[0].length);
+            // replace only the start and end single quotes to double quotes
+            let content = match[0].replace(/(^['"])|(['"]$)/g, '"');
+            content = JSON.parse(content);
 
-        //     const decoration: vscode.DecorationOptions = {
-        //         range: new vscode.Range(startPos, endPos),
-        //         hoverMessage: `This is a string: ${content}`
-        //     };
-        //     decorations.push(decoration);
-        // }
+            const decoration: vscode.DecorationOptions = {
+                range: new vscode.Range(startPos, endPos),
+                renderOptions: {
+                    before: {
+                        contentIconPath: Uri.file(this.path.with({ path: this.path.fsPath + '\\test.gif' }).fsPath),
+                    }
+                }
+            };
+            stringDecorations.push(decoration);
+        }
 
         this._textEditor.setDecorations(this._style, decorations);
+        this._textEditor.setDecorations(this._styleJSString, stringDecorations);
     }
 }
