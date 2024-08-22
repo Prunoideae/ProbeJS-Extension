@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ProbeClient } from './bridge';
+import { ProbeClient } from '../bridge';
 import { InfoSync } from './errorSync';
 
 export class EvaluateProvider implements vscode.CodeLensProvider {

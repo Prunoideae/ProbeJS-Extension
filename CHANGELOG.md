@@ -2,6 +2,14 @@
 
 All notable changes to the "ProbeJS" extension will be documented in this file.
 
+## [v0.3.0]
+
+- **Only works with latest 1.21 ProbeJS due to KubeJS and `require` changes**
+- Improved hint when connecting to the web server started by MC 1.21.
+- Now shows item/block/tag icons for corresponding strings if connected to the web server.
+- Script reload is currently not working for server scripts due to some KubeJS problem.
+- Automatically imports `Java.loadClass` instead of `require` to comply with KubeJS.
+
 ## [v0.2.0]
 
 - **Does not work with pre-1.21 ProbeJS due to completely rewritten.**

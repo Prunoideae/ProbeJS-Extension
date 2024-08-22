@@ -3,8 +3,9 @@ import { existsSync, readFileSync, writeFileSync } from 'fs';
 import * as vscode from 'vscode';
 
 interface ProbeJSConfig {
-    "probejs.interactive": boolean;
-    "probejs.interactivePort": number;
+    "enabled": boolean;
+    "port": number;
+    "public_address": string;
 }
 
 export class ProbeJSProject {
@@ -26,16 +27,16 @@ export class ProbeJSProject {
         return this.withPath("kubejs");
     }
 
-    get probeJSConfigPath(): vscode.Uri {
-        return this.withPath("kubejs/config/probe-settings.json");
+    get webServerConfigPath(): vscode.Uri {
+        return this.withPath("kubejs/config/web_server.json");
     }
 
     get configAvailable(): boolean {
-        return existsSync(this.probeJSConfigPath.fsPath);
+        return existsSync(this.webServerConfigPath.fsPath);
     }
 
-    get probeJSConfig(): ProbeJSConfig {
-        return JSON.parse(readFileSync(this.probeJSConfigPath.fsPath, 'utf8'));
+    get webServerConfig(): ProbeJSConfig {
+        return JSON.parse(readFileSync(this.webServerConfigPath.fsPath, 'utf8'));
     }
 
     get decompiledPath(): vscode.Uri {
@@ -43,9 +44,9 @@ export class ProbeJSProject {
     }
 
     public enableProbeJS(): void {
-        const probeJSConfig = this.probeJSConfig;
-        probeJSConfig["probejs.interactive"] = true;
-        probeJSConfig["probejs.interactivePort"] = 7796;
-        writeFileSync(this.probeJSConfigPath.fsPath, JSON.stringify(probeJSConfig, null, 4));
+        const probeJSConfig = this.webServerConfig;
+        probeJSConfig["enabled"] = true;
+        probeJSConfig["port"] = 61423;
+        writeFileSync(this.webServerConfigPath.fsPath, JSON.stringify(probeJSConfig, null, 4));
     }
 }

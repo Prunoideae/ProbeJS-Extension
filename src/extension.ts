@@ -1,52 +1,31 @@
 import * as vscode from 'vscode';
-import { ProbeClient } from './bridge';
+import { ProbeDecorator } from './features/decoration';
+import { InfoSync } from './features/errorSync';
+import { EvaluateProvider } from './features/evaluate';
+import { ProbeHover } from './features/hover';
+import { setupInsertions } from './features/insertions';
+import { JavaSourceProvider, StacktraceSourceProvider } from './features/jumpToSource';
 import { ProbeJSProject } from './project';
-import { JavaSourceProvider, StacktraceSourceProvider } from './jumpToSource';
-import { InfoSync } from './errorSync';
-import { ProbeDecorator } from './decoration';
-import { setupInsertions } from './insertions';
 import { ReloadProvider } from './reload';
-import { EvaluateProvider } from './evaluate';
+import { ProbeWebClient } from './probe';
+import { ProbeImages } from './features/imageClient';
 
-let probeClient: ProbeClient | undefined;
+let probeClient: ProbeWebClient | null = null;
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
 	let ws = vscode.workspace.workspaceFolders;
 	if (!ws) { return; }
 
 	let workspace = ws[0].uri;
 	let project = new ProbeJSProject(workspace);
 	if (!project.configAvailable) { return; }
-	let config = project.probeJSConfig;
+	let config = project.webServerConfig;
 
-
-	const probeDecorator = new ProbeDecorator(workspace);
-	if (vscode.window.activeTextEditor) {
-		probeDecorator.editor = vscode.window.activeTextEditor;
-		probeDecorator.decorate();
-	}
-	vscode.window.onDidChangeActiveTextEditor(editor => {
-		if (editor) {
-			probeDecorator.editor = editor;
-			probeDecorator.decorate();
-		}
-	});
-	vscode.workspace.onDidChangeTextDocument(event => {
-		if (vscode.window.activeTextEditor && event.document === vscode.window.activeTextEditor.document) {
-			probeDecorator.decorate();
-		}
-	});
-
-	if (config['probejs.interactive']) {
-		let port = config['probejs.interactivePort'] ?? 7796;
-		probeClient = new ProbeClient(port);
-
+	if (config['enabled']) {
+		let port = config['port'] ?? 61423;
+		probeClient = new ProbeWebClient(port);
+		let probeImages = new ProbeImages(probeClient);
 		setupInsertions(probeClient);
-
-		vscode.commands.registerCommand('probejs.reconnect', () => {
-			probeClient?.close();
-			probeClient?.connect(port);
-		});
 
 		let jumpSourceProvider = new JavaSourceProvider(project.decompiledPath);
 		vscode.languages.registerCodeLensProvider('javascript', jumpSourceProvider);
@@ -60,25 +39,62 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand('probejs.reloadScript', reloadProvider.reloadScript.bind(reloadProvider));
 
 		let sync = new InfoSync(probeClient);
-		let evaluateProvider = new EvaluateProvider(probeClient, sync);
-		vscode.languages.registerCodeLensProvider('javascript', evaluateProvider);
-		vscode.commands.registerCommand('probejs.evaluate', evaluateProvider.evaluate.bind(evaluateProvider));
+
+		// let evaluateProvider = new EvaluateProvider(probeClient, sync);
+		// vscode.languages.registerCodeLensProvider('javascript', evaluateProvider);
+		// vscode.commands.registerCommand('probejs.evaluate', evaluateProvider.evaluate.bind(evaluateProvider));
+
+		let hover = new ProbeHover(probeImages);
+		vscode.languages.registerHoverProvider('javascript', hover);
+		vscode.languages.registerHoverProvider('plaintext', hover);
+		vscode.languages.registerHoverProvider('json', hover);
+		vscode.languages.registerHoverProvider('toml', hover);
+
+		const probeDecorator = new ProbeDecorator(probeImages);
+		probeClient.onConnected(async () => { context.subscriptions.push(await probeDecorator.setupDecoration()); });
+
+		vscode.commands.registerCommand('probejs.reconnect', async () => {
+			if (!await probeClient?.tryConnect()) {
+				vscode.window.showErrorMessage('Failed to connect to ProbeJS Webserver, is MC 1.21+ running?');
+				return;
+			}
+			probeDecorator.clearCache();
+			if (vscode.window.activeTextEditor) { await probeDecorator.decorate(); }
+		});
 
 		// hello vscode!
 		vscode.window.showInformationMessage('ProbeJS Extension is now active!');
+		await probeClient.tryConnect();
+
+		const tsExtension = vscode.extensions.getExtension('vscode.typescript-language-features');
+		if (!tsExtension) {
+			return;
+		}
+		await tsExtension.activate();
+		if (!tsExtension.exports || !tsExtension.exports.getAPI) {
+			return;
+		}
+
+		const api = tsExtension.exports.getAPI(0);
+		if (!api) {
+			return;
+		}
+
+		api.configurePlugin('sample', {
+			enabled: true,
+		});
 	} else {
-		if (config['probejs.interactive'] === undefined) {
+		if (config['enabled'] === undefined) {
 			project.enableProbeJS();
 			vscode.window.showInformationMessage('ProbeJS Extension has been enabled! Please reload the game and VSCode to start using it.');
 		} else {
-			vscode.window.showInformationMessage('ProbeJS Extension is not enabled. You can enable it by using `/probejs interactive` in the game.');
+			vscode.window.showInformationMessage('ProbeJS Extension is not enabled...');
 		}
 	}
 }
 
-
 export function deactivate() {
 	if (probeClient) {
-		probeClient.close();
+		probeClient.disconnect();
 	}
 }

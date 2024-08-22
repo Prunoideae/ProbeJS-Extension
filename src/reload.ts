@@ -1,10 +1,12 @@
 import * as vscode from 'vscode';
-import { ProbeClient } from './bridge';
+import { ProbeWebClient } from './probe';
+
+type ScriptType = "server_scripts" | "client_scripts" | "startup_scripts";
 
 export class ReloadProvider implements vscode.CodeLensProvider {
     onDidChangeCodeLenses?: vscode.Event<void> | undefined;
 
-    constructor(private readonly probeClient: ProbeClient) {
+    constructor(private readonly probeClient: ProbeWebClient) {
 
     }
 
@@ -14,20 +16,13 @@ export class ReloadProvider implements vscode.CodeLensProvider {
 
         // check for script type.
         if (document.uri.fsPath.includes('server_scripts')) {
-            const reloadCodeLens = new vscode.CodeLens(firstLineRange, {
-                title: "Reload Script and Datapack",
-                command: "probejs.reloadScript",
-                tooltip: "Reload the script",
-                arguments: ["reload"]
-            });
-
             const reloadServerScriptCodeLens = new vscode.CodeLens(firstLineRange, {
                 title: "Reload Script",
                 command: "probejs.reloadScript",
                 tooltip: "Reload the script",
                 arguments: ["server_scripts"]
             });
-            codeLenses.push(reloadCodeLens, reloadServerScriptCodeLens);
+            codeLenses.push(reloadServerScriptCodeLens);
         } else if (document.uri.fsPath.includes('client_scripts')) {
             const reloadClientScriptCodeLens = new vscode.CodeLens(firstLineRange, {
                 title: "Reload Script",
@@ -48,13 +43,21 @@ export class ReloadProvider implements vscode.CodeLensProvider {
 
         return codeLenses;
     }
+
     resolveCodeLens?(codeLens: vscode.CodeLens, token: vscode.CancellationToken): vscode.ProviderResult<vscode.CodeLens> {
         return codeLens;
     }
 
-    public async reloadScript(scriptType: string) {
-        await this.probeClient.command("reload", {
-            scriptType
-        });
+    public async reloadScript(scriptType: ScriptType) {
+        switch (scriptType) {
+            case "startup_scripts":
+                await this.probeClient.post("api/reload/startup");
+                break;
+            case "server_scripts":
+                await this.probeClient.post("api/reload/server");
+                break;
+            case "client_scripts":
+                break;
+        };
     }
 }

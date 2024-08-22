@@ -75,7 +75,7 @@ export class ProbeClient {
 
             this._connected = false;
             this._statusBar.text = '$(debug-disconnect) Click to reconnect to ProbeJS...';
-            this._statusBar.color = 'yellow';
+            if (this._statusBar.color !== 'red') { this._statusBar.color = 'yellow'; }
         });
 
         this._ws.on('error', (error) => {
@@ -86,7 +86,7 @@ export class ProbeClient {
             this._connected = false;
             this._statusBar.text = '$(debug-disconnect) Click to reconnect to ProbeJS...';
             this._statusBar.color = 'red';
-            vscode.window.showErrorMessage(`ProbeJS WebSocket connection failed: ${error}`);
+            vscode.window.showErrorMessage(`ProbeJS websocket connection failed, is MC 1.21+ running?`);
         });
     }
 
