@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { ProbeWebClient } from "../probe";
 import { ConsoleInfo } from "../payload/consoleInfo";
 import path = require("path");
+import { SessionInfo } from "../payload/sessionInfo";
 
 export class InfoSync {
 
@@ -34,6 +35,10 @@ export class InfoSync {
             if (event !== "before_scripts_loaded") { return; }
             await this.beforeReloadHandler(data as { type: string, time: number });
         });
+
+        client.registerWSInitializer("api/console/startup/stream", SessionInfo.asPayloadInitializer({ source: "probejs", tags: ["highlight"] }));
+        client.registerWSInitializer("api/console/server/stream", SessionInfo.asPayloadInitializer({ source: "probejs", tags: ["highlight"] }));
+        client.registerWSInitializer("api/updates", SessionInfo.asPayloadInitializer({ source: "probejs", tags: ["highlight"] }));
     }
 
     private async beforeReloadHandler(data: { type: string, time: number }) {

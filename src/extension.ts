@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { ProbeDecorator } from './features/decoration';
 import { InfoSync } from './features/errorSync';
-import { EvaluateProvider } from './features/evaluate';
 import { ProbeHover } from './features/hover';
 import { setupInsertions } from './features/insertions';
 import { JavaSourceProvider, StacktraceSourceProvider } from './features/jumpToSource';
@@ -62,27 +61,26 @@ export async function activate(context: vscode.ExtensionContext) {
 			if (vscode.window.activeTextEditor) { await probeDecorator.decorate(); }
 		});
 
+
 		// hello vscode!
 		vscode.window.showInformationMessage('ProbeJS Extension is now active!');
 		await probeClient.tryConnect();
 
 		const tsExtension = vscode.extensions.getExtension('vscode.typescript-language-features');
-		if (!tsExtension) {
-			return;
-		}
+		if (!tsExtension) { return; }
 		await tsExtension.activate();
-		if (!tsExtension.exports || !tsExtension.exports.getAPI) {
-			return;
-		}
+		// repeatly configure the plugin every 2 seconds
+		setInterval(() => {
+			if (!tsExtension.exports || !tsExtension.exports.getAPI) { return; }
 
-		const api = tsExtension.exports.getAPI(0);
-		if (!api) {
-			return;
-		}
+			const api = tsExtension.exports.getAPI(0);
+			if (!api) { return; }
 
-		api.configurePlugin('sample', {
-			enabled: true,
-		});
+			api.configurePlugin('sample', {
+				enabled: true,
+			});
+		}, 2000);
+
 	} else {
 		if (config['enabled'] === undefined) {
 			project.enableProbeJS();

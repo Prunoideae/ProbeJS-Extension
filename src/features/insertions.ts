@@ -2,14 +2,15 @@ import * as vscode from "vscode";
 import { ProbeWebClient } from "../probe";
 import { HighlightItem, toComponentString } from "../payload/highlightItems";
 import { HighlighBlock, toPropertyString } from "../payload/highlightBlock";
+import { SessionInfo } from "../payload/sessionInfo";
 
 export function setupInsertions(probeClient: ProbeWebClient) {
 
     function acceptItem(data: HighlightItem[]) {
         let tabStop = 0;
         let dataString = data.map((item) => {
-            let itemString = item.id;
-            if (item.components) {
+            let itemString = item.item.id;
+            if (item.item.components) {
                 let components = toComponentString(item);
                 let componentStrings = components.map((comp, index, arr) => {
                     // escape } in the component string since it will be used in snippet
@@ -17,13 +18,18 @@ export function setupInsertions(probeClient: ProbeWebClient) {
                     let commaComp = index === arr.length - 1 ? comp : comp + ",";
                     return `\${${++tabStop}:${commaComp}}`;
                 }).join("");
-                itemString = `${item.id}\${${++tabStop}:[${componentStrings}]}`;
+                itemString = `${item.item.id}\${${++tabStop}:[${componentStrings}]}`;
+            }
+            if (item.item.count > 1) {
+                itemString = `${item.item.count}x ${itemString}`;
             }
             return itemString;
         });
-        let snippetString = dataString.length === 1 ? dataString[0] : `[${dataString.join(",")}]`;
+        // enclose each item in single quotes
+        dataString = dataString.map((str) => `'${str}'`);
+        let snippetString = dataString.length === 1 ? dataString[0] : `[${dataString.join(", ")}]`;
 
-        vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(`'${snippetString}'`));
+        vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(snippetString));
     }
 
     function acceptBlock(data: HighlighBlock) {
@@ -47,5 +53,5 @@ export function setupInsertions(probeClient: ProbeWebClient) {
             acceptBlock(data as HighlighBlock);
         }
     });
-
+    probeClient.registerWSInitializer("api/updates", SessionInfo.asPayloadInitializer({ source: "probejs", tags: ["highlight"] }));
 }

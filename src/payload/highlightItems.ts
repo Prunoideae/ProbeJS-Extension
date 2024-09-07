@@ -1,7 +1,11 @@
 export interface HighlightItem {
-    count: number;
-    id: string;
-    components: { [key: string]: any };
+    item: { count: number, id: string, components?: { [key: string]: Tag } };
+    string: string;
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    block_tags: string[];
+    name: string;
+    icon: string;
+    tags: string[];
 }
 
 type Tag = string | number | boolean | any[] | { [key: string]: any };
@@ -24,8 +28,8 @@ function resolveTagToString(tag: Tag): string {
 
 export function toComponentString(item: HighlightItem): string[] {
     let components = [];
-    for (let key in item.components) {
-        components.push(`${key}=${resolveTagToString(item.components[key])}`);
+    for (let key in item.item.components) {
+        components.push(`${key}=${resolveTagToString(item.item.components[key])}`);
     }
     return components;
 }

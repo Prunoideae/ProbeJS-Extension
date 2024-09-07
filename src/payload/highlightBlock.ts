@@ -1,5 +1,6 @@
 export interface HighlighBlock {
     id: string;
+    dimension: string;
     properties: { [key: string]: string };
     data: { [key: string]: any };
     components: { [key: string]: any };
@@ -8,7 +9,6 @@ export interface HighlighBlock {
         y: number;
         z: number;
     },
-    dimension: string;
 }
 
 export function toPropertyString(block: HighlighBlock): string[] {

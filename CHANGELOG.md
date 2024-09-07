@@ -2,6 +2,14 @@
 
 All notable changes to the "ProbeJS" extension will be documented in this file.
 
+## [v0.4.0]
+
+- Updated for KubeJS version `2101.7.0-build.163`+
+
+## [v0.3.1]
+
+- Now automatically reconfigures tsserver plugin to prevent losing `Java.loadClass` between script types.
+
 ## [v0.3.0]
 
 - **Only works with latest 1.21 ProbeJS due to KubeJS and `require` changes**

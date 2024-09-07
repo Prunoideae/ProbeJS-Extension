@@ -4,6 +4,7 @@ import * as vscode from "vscode";
 
 export class ProbeWebClient {
     private _wsHandlers: Map<string, ((event: string, data: any) => Promise<void>)[]> = new Map();
+    private _wsInitializers: Map<string, (ws: WebSocket) => Promise<void>> = new Map();
     private _ws: WebSocket[] = [];
     private _connected = 0;
     private _portConnected = false;
@@ -76,7 +77,10 @@ export class ProbeWebClient {
         this._wsHandlers.forEach((handlers, path) => {
             let ws = new WebSocket(`ws://localhost:${this.port}/${path}`);
 
-            ws.on("open", () => {
+            ws.on("open", async () => {
+                if (this._wsInitializers.has(path)) {
+                    await this._wsInitializers.get(path)?.(ws);
+                }
                 this._connected++;
                 if (this._connected === this._ws.length) {
                     this._statusBar.text = "$(zap) ProbeJS Connected!";
@@ -109,6 +113,10 @@ export class ProbeWebClient {
 
             this._ws.push(ws);
         });
+    }
+
+    public registerWSInitializer(path: string, handler: (ws: WebSocket) => Promise<void>) {
+        this._wsInitializers.set(path, handler);
     }
 
     public registerWSHandler(path: string, handler: (event: string, data: any) => Promise<void>) {
