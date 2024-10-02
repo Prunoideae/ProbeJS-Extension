@@ -2,6 +2,10 @@ import axios, { AxiosResponse } from "axios";
 import { WebSocket } from "ws";
 import * as vscode from "vscode";
 
+async function sleep(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 export class ProbeWebClient {
     private _wsHandlers: Map<string, ((event: string, data: any) => Promise<void>)[]> = new Map();
     private _wsInitializers: Map<string, (ws: WebSocket) => Promise<void>> = new Map();
@@ -51,6 +55,7 @@ export class ProbeWebClient {
             axios.defaults.baseURL = `http://localhost:${this.port}`;
             console.log(`Trying to connect to http://localhost:${this.port}`);
             if (await this.ping()) {
+                await sleep(1000);
                 await this.connected();
                 return true;
             }
@@ -60,6 +65,7 @@ export class ProbeWebClient {
         this.port = originalPort;
         axios.defaults.baseURL = `http://localhost:${this.port}`;
         if (await this.ping()) {
+            await sleep(1000);
             await this.connected();
             return true;
         }
@@ -103,7 +109,9 @@ export class ProbeWebClient {
                     if (this._statusBar.color !== "red") { this._statusBar.color = "yellow"; }
                 }
             });
-            ws.on("error", () => {
+            ws.on("error", (error) => {
+                console.error(`Path: ${path}`);
+                console.error(error);
                 this._connected = 0;
                 this._ws.forEach(ws => ws.close());
                 this._statusBar.text = "$(debug-disconnect) Click to reconnect to webserver...";

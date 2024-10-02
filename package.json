@@ -2,7 +2,7 @@
   "name": "probejs",
   "displayName": "ProbeJS",
   "description": "VSCode-Minecraft interop for ProbeJS",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "engines": {
     "vscode": "^1.78.0"
   },
@@ -57,6 +57,6 @@
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "axios": "^1.7.3",
     "sample": "*",
-    "ws": "^8.16.0"
+    "ws": "^8.18.0"
   }
 }

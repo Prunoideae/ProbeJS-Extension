@@ -2,6 +2,10 @@
 
 All notable changes to the "ProbeJS" extension will be documented in this file.
 
+## [v0.4.2]
+
+- Fixed a bug where the WebSocket is instantiated too early, causing the extension to not work properly.
+
 ## [v0.4.1]
 
 - Added `shaped` mode for inventory list insertion. This is triggered by pressing `ctrl` when selecting items.
