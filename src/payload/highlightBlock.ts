@@ -8,7 +8,8 @@ export interface HighlighBlock {
         x: number;
         y: number;
         z: number;
-    },
+    };
+    flags?: number;
 }
 
 export function toPropertyString(block: HighlighBlock): string[] {

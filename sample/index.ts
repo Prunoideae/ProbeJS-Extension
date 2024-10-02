@@ -4,6 +4,7 @@ function init(modules: { typescript: typeof tss }) {
 
     let enabled = false;
     let logger: tss.server.Logger | null = null;
+
     function onConfigurationChanged(config: { enabled: boolean }) {
         enabled = config.enabled;
         logger?.info(`ProbeJS tsserver plugin is now ${enabled ? "enabled" : "disabled"}`);
@@ -42,6 +43,8 @@ function init(modules: { typescript: typeof tss }) {
         info.project.projectService.logger.info(
             "ProbeJS tsserver plugin is loading!"
         );
+
+        logger = info.project.projectService.logger;
 
         for (let k of Object.keys(info.languageService) as Array<keyof tss.LanguageService>) {
             const x = info.languageService[k];

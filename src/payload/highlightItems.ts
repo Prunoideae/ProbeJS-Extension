@@ -6,6 +6,12 @@ export interface HighlightItem {
     name: string;
     icon: string;
     tags: string[];
+    slot?: number;
+}
+
+export interface HighlightedItems {
+    items: HighlightItem[];
+    flags?: { ctrl: number, shift: number, alt: number };
 }
 
 type Tag = string | number | boolean | any[] | { [key: string]: any };

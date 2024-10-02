@@ -2,7 +2,7 @@
   "name": "probejs",
   "displayName": "ProbeJS",
   "description": "VSCode-Minecraft interop for ProbeJS",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "engines": {
     "vscode": "^1.78.0"
   },

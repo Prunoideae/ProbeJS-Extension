@@ -2,6 +2,10 @@
 
 All notable changes to the "ProbeJS" extension will be documented in this file.
 
+## [v0.4.1]
+
+- Added `shaped` mode for inventory list insertion. This is triggered by pressing `ctrl` when selecting items.
+
 ## [v0.4.0]
 
 - Updated for KubeJS version `2101.7.0-build.163`+
