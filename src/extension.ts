@@ -53,7 +53,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		probeClient.onConnected(async () => { context.subscriptions.push(await probeDecorator.setupDecoration()); });
 
 		vscode.commands.registerCommand('probejs.reconnect', async () => {
-			if (!await probeClient?.tryConnect()) {
+			if (!await probeClient?.tryConnect(false)) {
 				vscode.window.showErrorMessage('Failed to connect to ProbeJS Webserver, is MC 1.21+ running?');
 				return;
 			}
@@ -61,26 +61,28 @@ export async function activate(context: vscode.ExtensionContext) {
 			if (vscode.window.activeTextEditor) { await probeDecorator.decorate(); }
 		});
 
+		function configureTSPlugin() {
+			if (!tsExtension) { return; }
+			if (!tsExtension.exports || !tsExtension.exports.getAPI) { return; }
+			const api = tsExtension.exports.getAPI(0);
+			if (!api) { return; }
+			api.configurePlugin('sample', {
+				enabled: probeClient?.mcConnected(),
+				port: probeClient?.connectedPort()
+			});
+		}
 
 		// hello vscode!
 		vscode.window.showInformationMessage('ProbeJS Extension is now active!');
-		await probeClient.tryConnect();
 
 		const tsExtension = vscode.extensions.getExtension('vscode.typescript-language-features');
 		if (!tsExtension) { return; }
 		await tsExtension.activate();
+
 		// repeatly configure the plugin every 2 seconds
-		setInterval(() => {
-			if (!tsExtension.exports || !tsExtension.exports.getAPI) { return; }
+		setInterval(configureTSPlugin, 2000);
 
-			const api = tsExtension.exports.getAPI(0);
-			if (!api) { return; }
-
-			api.configurePlugin('sample', {
-				enabled: true,
-			});
-		}, 2000);
-
+		probeClient.tryConnect(true);
 	} else {
 		if (config['enabled'] === undefined) {
 			project.enableProbeJS();

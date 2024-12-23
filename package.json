@@ -56,7 +56,7 @@
   "dependencies": {
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "axios": "^1.7.3",
-    "sample": "*",
+    "sample": "file:tsplugin",
     "ws": "^8.18.0"
   }
 }

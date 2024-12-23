@@ -38,7 +38,7 @@ export class InfoSync {
 
         client.registerWSInitializer("api/console/startup/stream", SessionInfo.asPayloadInitializer({ source: "probejs", tags: ["highlight"] }));
         client.registerWSInitializer("api/console/server/stream", SessionInfo.asPayloadInitializer({ source: "probejs", tags: ["highlight"] }));
-        client.registerWSInitializer("api/updates", SessionInfo.asPayloadInitializer({ source: "probejs", tags: ["highlight"] }));
+        client.registerWSInitializer("api/updates", SessionInfo.asPayloadInitializer({ source: "probejs", tags: ["highlight", "after_scripts_loaded"] }));
     }
 
     private async beforeReloadHandler(data: { type: string, time: number }) {

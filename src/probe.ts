@@ -13,10 +13,12 @@ export class ProbeWebClient {
     private _connected = 0;
     private _portConnected = false;
     private _statusBar: vscode.StatusBarItem;
-    private _onConnected: (() => Promise<void>)[] = [];
+    private _onConnected: ((port: number) => Promise<void>)[] = [];
+    private _port: number = 61423;
 
 
-    constructor(private port: number) {
+    constructor(private originalPort: number) {
+        this._port = originalPort;
         this._statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
         this._statusBar.text = "ProbeJS Web Client...";
         this._statusBar.command = "probejs.reconnect";
@@ -32,7 +34,7 @@ export class ProbeWebClient {
         }
     }
 
-    public onConnected(handler: () => Promise<void>) {
+    public onConnected(handler: (port: number) => Promise<void>) {
         this._onConnected.push(handler);
     }
 
@@ -44,26 +46,27 @@ export class ProbeWebClient {
         this.connectWS();
 
         for (let handler of this._onConnected) {
-            await handler();
+            await handler(this._port);
         }
     }
 
-    public async tryConnect(): Promise<boolean> {
+    public async tryConnect(firstStart: boolean): Promise<boolean> {
+        if (firstStart) { await sleep(4000); }
         this._portConnected = false;
-        let originalPort = this.port;
+        let originalPort = this._port;
         for (let i = 0; i < 10; i++) {
-            axios.defaults.baseURL = `http://localhost:${this.port}`;
-            console.log(`Trying to connect to http://localhost:${this.port}`);
+            axios.defaults.baseURL = `http://localhost:${this._port}`;
+            console.log(`Trying to connect to http://localhost:${this._port}`);
             if (await this.ping()) {
-                await sleep(1000);
+                if (firstStart) { await sleep(1000); }
                 await this.connected();
                 return true;
             }
-            this.port++;
+            this._port++;
         }
 
-        this.port = originalPort;
-        axios.defaults.baseURL = `http://localhost:${this.port}`;
+        this._port = originalPort;
+        axios.defaults.baseURL = `http://localhost:${this._port}`;
         if (await this.ping()) {
             await sleep(1000);
             await this.connected();
@@ -81,7 +84,7 @@ export class ProbeWebClient {
         this._ws = [];
 
         this._wsHandlers.forEach((handlers, path) => {
-            let ws = new WebSocket(`ws://localhost:${this.port}/${path}`);
+            let ws = new WebSocket(`ws://localhost:${this._port}/${path}`);
 
             ws.on("open", async () => {
                 if (this._wsInitializers.has(path)) {
@@ -140,7 +143,7 @@ export class ProbeWebClient {
 
     public async post<T>(path: string, data?: any): Promise<T | null> {
         if (!this._portConnected) {
-            await this.tryConnect();
+            await this.tryConnect(false);
         }
 
         try {
@@ -154,7 +157,7 @@ export class ProbeWebClient {
 
     public async get<T>(path: string): Promise<AxiosResponse<T> | null> {
         if (!this._portConnected) {
-            await this.tryConnect();
+            await this.tryConnect(false);
         }
 
         try {
@@ -168,5 +171,13 @@ export class ProbeWebClient {
 
     public async disconnect() {
         this._ws.forEach(ws => ws.close());
+    }
+
+    public connectedPort(): number | undefined {
+        return this._portConnected ? this._port : undefined;
+    }
+
+    public mcConnected(): boolean {
+        return this._portConnected;
     }
 }
