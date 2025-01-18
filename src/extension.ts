@@ -8,6 +8,8 @@ import { ProbeJSProject } from './project';
 import { ReloadProvider } from './reload';
 import { ProbeWebClient } from './probe';
 import { ProbeImages } from './features/imageClient';
+import path = require('path');
+import { insertArray } from './features/insertArrays';
 
 let probeClient: ProbeWebClient | null = null;
 
@@ -27,15 +29,16 @@ export async function activate(context: vscode.ExtensionContext) {
 		setupInsertions(probeClient);
 
 		let jumpSourceProvider = new JavaSourceProvider(project.decompiledPath);
-		vscode.languages.registerCodeLensProvider('javascript', jumpSourceProvider);
-		vscode.commands.registerCommand('probejs.jumpToSource', jumpSourceProvider.jumpToSource.bind(jumpSourceProvider));
 		let traceProvider = new StacktraceSourceProvider(project.decompiledPath);
-		vscode.languages.registerCodeLensProvider('plaintext', traceProvider);
-		vscode.commands.registerCommand('probejs.jumpToStackSource', traceProvider.jumpToSource.bind(traceProvider));
-
 		let reloadProvider = new ReloadProvider(probeClient);
-		vscode.languages.registerCodeLensProvider('javascript', reloadProvider);
-		vscode.commands.registerCommand('probejs.reloadScript', reloadProvider.reloadScript.bind(reloadProvider));
+		context.subscriptions.push(
+			vscode.languages.registerCodeLensProvider('javascript', jumpSourceProvider),
+			vscode.commands.registerCommand('probejs.jumpToSource', jumpSourceProvider.jumpToSource.bind(jumpSourceProvider)),
+			vscode.languages.registerCodeLensProvider('plaintext', traceProvider),
+			vscode.commands.registerCommand('probejs.jumpToStackSource', traceProvider.jumpToSource.bind(traceProvider)),
+			vscode.languages.registerCodeLensProvider('javascript', reloadProvider),
+			vscode.commands.registerCommand('probejs.reloadScript', reloadProvider.reloadScript.bind(reloadProvider)),
+		);
 
 		let sync = new InfoSync(probeClient);
 
@@ -44,31 +47,42 @@ export async function activate(context: vscode.ExtensionContext) {
 		// vscode.commands.registerCommand('probejs.evaluate', evaluateProvider.evaluate.bind(evaluateProvider));
 
 		let hover = new ProbeHover(probeImages);
-		vscode.languages.registerHoverProvider('javascript', hover);
-		vscode.languages.registerHoverProvider('plaintext', hover);
-		vscode.languages.registerHoverProvider('json', hover);
-		vscode.languages.registerHoverProvider('toml', hover);
+		context.subscriptions.push(
+			vscode.languages.registerHoverProvider('javascript', hover),
+			vscode.languages.registerHoverProvider('plaintext', hover),
+			vscode.languages.registerHoverProvider('json', hover),
+			vscode.languages.registerHoverProvider('toml', hover),
+		);
 
 		const probeDecorator = new ProbeDecorator(probeImages);
 		probeClient.onConnected(async () => { context.subscriptions.push(await probeDecorator.setupDecoration()); });
 
-		vscode.commands.registerCommand('probejs.reconnect', async () => {
-			if (!await probeClient?.tryConnect(false)) {
-				vscode.window.showErrorMessage('Failed to connect to ProbeJS Webserver, is MC 1.21+ running?');
-				return;
-			}
-			probeDecorator.clearCache();
-			if (vscode.window.activeTextEditor) { await probeDecorator.decorate(); }
-		});
+		context.subscriptions.push(
+			vscode.commands.registerCommand('probejs.reconnect', async () => {
+				if (!await probeClient?.tryConnect(false)) {
+					vscode.window.showErrorMessage('Failed to connect to ProbeJS Webserver, is MC 1.21+ running?');
+					return;
+				}
+				probeDecorator.clearCache();
+				if (vscode.window.activeTextEditor) { await probeDecorator.decorate(); }
+			}),
+			vscode.commands.registerCommand('probejs.insertArray', async () => await insertArray(probeClient)),
+		);
 
 		function configureTSPlugin() {
 			if (!tsExtension) { return; }
 			if (!tsExtension.exports || !tsExtension.exports.getAPI) { return; }
 			const api = tsExtension.exports.getAPI(0);
 			if (!api) { return; }
+
+			const workspace = vscode.workspace.workspaceFolders?.[0];
+			if (!workspace) { return; }
+
+			const uri = path.resolve(workspace.uri.fsPath, './local/kubejs/cache/web/img');
 			api.configurePlugin('sample', {
 				enabled: probeClient?.mcConnected(),
-				port: probeClient?.connectedPort()
+				port: probeClient?.connectedPort(),
+				imageBasePath: `${vscode.Uri.file(uri)}`
 			});
 		}
 

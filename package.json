@@ -14,7 +14,12 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": [],
+    "commands": [
+      {
+        "command": "probejs.insertArray",
+        "title": "ProbeJS: Insert Array of Literals"
+      }
+    ],
     "typescriptServerPlugins": [
       {
         "name": "sample"

@@ -1,5 +1,7 @@
 import tss from 'typescript/lib/tsserverlibrary';
-import { DynamicRegistry, RegistryData } from './fetcher';
+import { DetailEntry, DynamicRegistry, EntryWithDisplay, RegistryData } from './fetcher';
+import axios from 'axios';
+import { ProbeImages } from './image';
 
 interface SpecialEntry {
     name: string,
@@ -8,14 +10,25 @@ interface SpecialEntry {
 
 function init(modules: { typescript: typeof tss }): tss.server.PluginModule {
     let enabled = false;
+    let cachedPort: number | undefined = undefined;
     let cachedData: DynamicRegistry = new DynamicRegistry();
+    let cachedImages: ProbeImages = new ProbeImages();
+
     let logger: tss.server.Logger | null = null;
 
-    function onConfigurationChanged(config: { enabled: boolean, port: number | undefined }) {
+    function onConfigurationChanged(config: {
+        enabled: boolean,
+        port: number | undefined,
+        imageBasePath: string
+    }) {
         if (config.enabled) {
             enabled = config.enabled;
             logger?.info(`ProbeJS tsserver plugin is now ${enabled ? "enabled" : "disabled"}`);
-            cachedData.refreshData(config.port, logger!);
+            if (config.port === cachedPort) { return; }
+            cachedPort = config.port;
+            cachedImages.basePath = config.imageBasePath;
+            axios.defaults.baseURL = `http://localhost:${config.port}`;
+            cachedData.refreshData(logger!);
         }
     }
 
@@ -65,6 +78,68 @@ function init(modules: { typescript: typeof tss }): tss.server.PluginModule {
         };
     }
 
+    function makeCompletionItemFromEntry(entry: EntryWithDisplay, prefix: string | undefined): tss.CompletionEntry {
+        let displayName = prefix?.concat(entry.displayName) ?? entry.displayName;
+        let completionEntry: tss.CompletionEntry = {
+            name: displayName,
+            kind: tss.ScriptElementKind.string,
+            kindModifiers: "",
+            sortText: displayName,
+            labelDetails: {},
+            insertText: prefix?.concat(entry.actual) ?? entry.actual,
+        };
+
+        if (entry.detail) { completionEntry.labelDetails!.detail = " " + entry.detail; }
+        if (entry.description) { completionEntry.labelDetails!.description = entry.description; }
+
+        return completionEntry;
+    }
+
+    function makeCompletionDetails(name: string, entry: DetailEntry): tss.CompletionEntryDetails {
+        return {
+            name,
+            kind: tss.ScriptElementKind.string,
+            kindModifiers: '',
+            displayParts: entry.name ? [{ kind: 'text', text: entry.name }] : [],
+            documentation: [{ kind: 'text', text: entry.content }],
+        };
+    }
+
+    function processSpecialNames(name: string): tss.CompletionEntryDetails | undefined {
+        let data = cachedData.getData();
+        if (!data) { return undefined; }
+
+        let nameWithoutPrefix = name.slice(1);
+        if (data.itemMap.has(name)) {
+            let item = data.itemMap.get(name)!;
+            let imageUri = cachedData.getItemPath(name);
+            let tags = (item.tags ?? []).map(tag => `- ${tag}`).join("\n");
+            imageUri = imageUri ? `![icon](${imageUri})` : "Image not found...?";
+
+            return makeCompletionDetails(name,
+                { content: `#### ${item.name}\n${imageUri}\n#### Tags\n${tags}` }
+            );
+        } else if (data.translations.has(name)) {
+            return makeCompletionDetails(name, {
+                name, content: "**Translation**\n\n" + data.translations.get(name)!
+            });
+        } else if (data.tags['minecraft:item'].includes(name)) {
+            let [namespace, path] = name.split(':');
+            let imageUri = cachedImages.getTagImage('item', namespace, path, 64);
+            imageUri = imageUri ? `![icon](${imageUri})` : "**Image is still loading... Re-triggering the completion will work**";
+            return makeCompletionDetails(name, {
+                name, content: `**${name}**\n\n${imageUri}`
+            });
+        } else if (data.tags['minecraft:item'].includes(nameWithoutPrefix)) {
+            let [namespace, path] = nameWithoutPrefix.split(':');
+            let imageUri = cachedImages.getTagImage('item', namespace, path, 64);
+            imageUri = imageUri ? `![icon](${imageUri})` : "**Image is still loading... Re-triggering the completion will work**";
+            return makeCompletionDetails(name, {
+                name, content: `**${name}**\n\n${imageUri}`
+            });
+        }
+    }
+
     function processEntries(entries: tss.CompletionEntry[]): [tss.CompletionEntry[], SpecialEntry[]] {
         // get all special entries (string starts with probejs$$)
         let specialEntries: SpecialEntry[] = [];
@@ -99,6 +174,18 @@ function init(modules: { typescript: typeof tss }): tss.server.PluginModule {
         if (!data) { return []; }
 
         let { name, prefix } = entry;
+        if (name.startsWith("itemStack")) {
+            return data.items.map(item => makeCompletionItemFromEntry(item, prefix));
+        }
+
+        if (name.startsWith("mod")) {
+            return data.mods.map(mod => makeCompletionItemFromEntry(mod, prefix));
+        }
+
+        if (name.startsWith("recipeId")) {
+            return data.recipeIds.map(recipeId => makeCompletionItemFromEntry(recipeId, prefix));
+        }
+
         if (name.startsWith("object$$")) {
             name = name.slice("object$$".length);
             return (data.objects[name] ?? [])
@@ -109,6 +196,10 @@ function init(modules: { typescript: typeof tss }): tss.server.PluginModule {
             name = name.slice("tag$$".length);
             return (data.tags[name] ?? [])
                 .map((tag) => makeCompletionItem(tag, tag, prefix, name));
+        }
+
+        if (name.startsWith("translation")) {
+            return Array.from(data.translations.keys()).map((key) => makeCompletionItem(key, key, prefix, name));
         }
 
         return [];
@@ -132,8 +223,10 @@ function init(modules: { typescript: typeof tss }): tss.server.PluginModule {
 
         proxy.getCompletionEntryDetails = (fileName, position, name, formatOptions, source, preferences, data) => {
             let oldDetails = info.languageService.getCompletionEntryDetails(fileName, position, name, formatOptions, source, preferences, data);
-            if (!oldDetails) { return oldDetails; }
             if (!enabled) { return oldDetails; }
+            if (!oldDetails) {
+                return processSpecialNames(name);
+            }
 
             let newDetails: tss.CompletionEntryDetails = {
                 ...oldDetails,
@@ -144,7 +237,27 @@ function init(modules: { typescript: typeof tss }): tss.server.PluginModule {
 
         proxy.getCompletionsAtPosition = (fileName, position, options, formatOptions) => {
             let oldCompletions = info.languageService.getCompletionsAtPosition(fileName, position, options, formatOptions);
-            if (!oldCompletions) { return oldCompletions; }
+            if (!oldCompletions) {
+                // item == "<- triggers here
+                let definition = info.languageService.getTypeDefinitionAtPosition(fileName, position - 5);
+                // item==" <- triggers here
+                if (!definition) { definition = info.languageService.getTypeDefinitionAtPosition(fileName, position - 3); }
+                if (definition && definition[0].name === "$ItemStack") {
+                    return {
+                        isGlobalCompletion: true,
+                        isMemberCompletion: false,
+                        isNewIdentifierLocation: false,
+                        entries: definition.map((def) => {
+                            return {
+                                name: def.name,
+                                kind: def.kind,
+                                sortText: def.name,
+                            };
+                        }),
+                    };
+                }
+                return oldCompletions;
+            }
             if (!enabled) { return oldCompletions; }
 
             let [newEntries, specialEntries] = processEntries(oldCompletions.entries);
