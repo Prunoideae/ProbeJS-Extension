@@ -6,6 +6,7 @@ interface ProbeJSConfig {
     "enabled": boolean;
     "port": number;
     "public_address": string;
+    "auth": string;
 }
 
 export class ProbeJSProject {

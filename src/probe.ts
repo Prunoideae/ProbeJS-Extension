@@ -17,7 +17,7 @@ export class ProbeWebClient {
     private _port: number = 61423;
 
 
-    constructor(private originalPort: number) {
+    constructor(private originalPort: number, private auth: string) {
         this._port = originalPort;
         this._statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
         this._statusBar.text = "ProbeJS Web Client...";
@@ -84,45 +84,54 @@ export class ProbeWebClient {
         this._ws = [];
 
         this._wsHandlers.forEach((handlers, path) => {
-            let ws = new WebSocket(`ws://localhost:${this._port}/${path}`);
-
-            ws.on("open", async () => {
-                if (this._wsInitializers.has(path)) {
-                    await this._wsInitializers.get(path)?.(ws);
-                }
-                this._connected++;
-                if (this._connected === this._ws.length) {
-                    this._statusBar.text = "$(zap) ProbeJS Connected!";
-                    this._statusBar.color = "green";
-                }
-            });
-            ws.on("message", async (data) => {
-                const response = JSON.parse(data.toString());
-                if (response.payload) {
-                    for (let h of handlers) {
-                        console.log(response);
-                        await h(response.type, response.payload);
+            console.info(`Connecting to ${path} with auth ${this.auth}`);
+            try {
+                let ws = new WebSocket(`ws://localhost:${this._port}/${path}`, {
+                    headers: {
+                        ["Authorization"]: this.auth
                     }
-                }
-            });
-            ws.on("close", () => {
-                this._connected--;
-                if (this._connected === 0) {
+                });
+                ws.on("open", async () => {
+                    if (this._wsInitializers.has(path)) {
+                        await this._wsInitializers.get(path)?.(ws);
+                    }
+                    this._connected++;
+                    if (this._connected === this._ws.length) {
+                        this._statusBar.text = "$(zap) ProbeJS Connected!";
+                        this._statusBar.color = "green";
+                    }
+                });
+                ws.on("message", async (data) => {
+                    const response = JSON.parse(data.toString());
+                    if (response.payload) {
+                        for (let h of handlers) {
+                            console.log(response);
+                            await h(response.type, response.payload);
+                        }
+                    }
+                });
+                ws.on("close", () => {
+                    this._connected--;
+                    if (this._connected === 0) {
+                        this._statusBar.text = "$(debug-disconnect) Click to reconnect to webserver...";
+                        if (this._statusBar.color !== "red") { this._statusBar.color = "yellow"; }
+                    }
+                });
+                ws.on("error", (error) => {
+                    console.error(`Path: ${path}`);
+                    console.error(error);
+                    this._connected = 0;
+                    this._ws.forEach(ws => ws.close());
                     this._statusBar.text = "$(debug-disconnect) Click to reconnect to webserver...";
-                    if (this._statusBar.color !== "red") { this._statusBar.color = "yellow"; }
-                }
-            });
-            ws.on("error", (error) => {
-                console.error(`Path: ${path}`);
-                console.error(error);
-                this._connected = 0;
-                this._ws.forEach(ws => ws.close());
-                this._statusBar.text = "$(debug-disconnect) Click to reconnect to webserver...";
-                this._statusBar.color = "red";
-                vscode.window.showErrorMessage("ProbeJS connection failed, is MC 1.21+ running?");
-            });
+                    this._statusBar.color = "red";
+                    vscode.window.showErrorMessage("ProbeJS connection failed, is MC 1.21+ running?");
+                });
 
-            this._ws.push(ws);
+                this._ws.push(ws);
+            } catch (e) {
+                console.error(e);
+                return;
+            }
         });
     }
 
@@ -147,7 +156,11 @@ export class ProbeWebClient {
         }
 
         try {
-            let resp = await axios.post(path, data);
+            let resp = await axios.post(path, data, {
+                headers: {
+                    ["Authorization"]: this.auth
+                }
+            });
             return resp.data;
         } catch (e) {
             console.error(e);
@@ -155,13 +168,13 @@ export class ProbeWebClient {
         }
     }
 
-    public async get<T>(path: string): Promise<AxiosResponse<T> | null> {
+    public async get<T>(path: string, timeout?: number | undefined): Promise<AxiosResponse<T> | null> {
         if (!this._portConnected) {
             await this.tryConnect(false);
         }
 
         try {
-            let resp = await axios.get(path);
+            let resp = await axios.get(path, { headers: { ["Authorization"]: this.auth }, timeout: timeout });
             return resp;
         } catch (e) {
             console.error(e);

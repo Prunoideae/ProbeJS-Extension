@@ -57,6 +57,7 @@ export class ReloadProvider implements vscode.CodeLensProvider {
                 await this.probeClient.post("api/reload/server");
                 break;
             case "client_scripts":
+                await this.probeClient.post("api/reload/client");
                 break;
         };
     }

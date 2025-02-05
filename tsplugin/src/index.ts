@@ -19,7 +19,8 @@ function init(modules: { typescript: typeof tss }): tss.server.PluginModule {
     function onConfigurationChanged(config: {
         enabled: boolean,
         port: number | undefined,
-        imageBasePath: string
+        imageBasePath: string,
+        auth: string | undefined
     }) {
         if (config.enabled) {
             enabled = config.enabled;
@@ -28,6 +29,7 @@ function init(modules: { typescript: typeof tss }): tss.server.PluginModule {
             cachedPort = config.port;
             cachedImages.basePath = config.imageBasePath;
             axios.defaults.baseURL = `http://localhost:${config.port}`;
+            cachedData.auth = config.auth;
             cachedData.refreshData(logger!);
         }
     }

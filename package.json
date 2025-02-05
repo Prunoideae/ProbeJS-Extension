@@ -18,6 +18,10 @@
       {
         "command": "probejs.insertArray",
         "title": "ProbeJS: Insert Array of Literals"
+      },
+      {
+        "command": "probejs.insertLangKeys",
+        "title": "ProbeJS: Insert Missing Language Keys"
       }
     ],
     "typescriptServerPlugins": [

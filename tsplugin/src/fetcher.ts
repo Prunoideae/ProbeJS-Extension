@@ -30,9 +30,15 @@ export interface RegistryData {
     itemMap: Map<string, ItemEntry>;
 }
 
+async function getWithAuth<T>(url: string, auth: string | undefined): Promise<T | undefined> {
+    if (!auth) { return undefined; }
+    return (await axios.get<T>(url, { headers: { ["Authorization"]: auth } }))?.data;
+}
+
 export class DynamicRegistry {
     private cachedData: RegistryData | undefined;
     public basePath: string | undefined;
+    public auth: string | undefined;
 
     public constructor() { }
 
@@ -48,23 +54,24 @@ export class DynamicRegistry {
             itemMap: new Map(),
         };
 
-        let registries = (await axios.get<string[]>("/api/registries"))?.data;
+        let registries = (await getWithAuth<string[]>("/api/registries", this.auth)) ?? [];
         logger.info(`baseUrl: ${axios.defaults.baseURL}`);
         logger.info(`Registries: ${registries}`);
 
         for (const registry of registries) {
             let [namespace, path] = registry.split(":");
             path = encodeURIComponent(path);
-            let objects = (await axios.get<string[]>(`/api/registries/${namespace}/${path}/keys`))?.data;
-            let tags = (await axios.get<string[]>(`/api/tags/${namespace}/${path}`))?.data;
+            let objects = await getWithAuth<string[]>(`/api/registries/${namespace}/${path}/keys`, this.auth);
+            let tags = await getWithAuth<string[]>(`/api/tags/${namespace}/${path}`, this.auth);
 
             if (objects) { this.cachedData.objects[registry] = objects; }
             if (tags) { this.cachedData.tags[registry] = tags; }
         }
 
-        let itemSearch = (await axios.get<ItemSearch>("/api/client/search/items?render-icons=64&tags=true"))?.data;
+        let itemSearch = await getWithAuth<ItemSearch>("/api/client/search/items?render-icons=64&tags=true", this.auth);
+        if (!itemSearch) { return; }
         this.basePath = itemSearch.icon_path_root;
-        // /api/client/search/items
+
         for (const itemStack of itemSearch.results) {
             let actual = itemStack.id + (itemStack.components ? toComponentString(itemStack.components) : "");
             this.cachedData.items.push({
@@ -76,8 +83,7 @@ export class DynamicRegistry {
             this.cachedData.itemMap.set(itemStack.name, itemStack);
         }
 
-        // /api/mods
-        for (const mod of (await axios.get<ModSearch[]>("/api/mods"))?.data) {
+        for (const mod of (await getWithAuth<ModSearch[]>("/api/mods", this.auth)) ?? []) {
             this.cachedData.mods.push({
                 displayName: mod.name,
                 actual: mod.id,
@@ -86,8 +92,7 @@ export class DynamicRegistry {
             });
         }
 
-        // /api/recipe-ids
-        this.cachedData.recipeIds = (await axios.get<string[]>("/api/recipe-ids"))?.data.map(id => {
+        this.cachedData.recipeIds = ((await getWithAuth<string[]>("/api/recipe-ids", this.auth)) ?? []).map(id => {
             return {
                 displayName: id,
                 actual: id,
@@ -95,8 +100,8 @@ export class DynamicRegistry {
             };
         });
 
-        // /api/lang-keys
-        for (const [key, value] of Object.entries((await axios.get<{ [key: string]: string }>("/api/lang-keys"))?.data)) {
+        const translations = await getWithAuth<{ [key: string]: string }>("/api/lang-keys", this.auth) ?? {};
+        for (const [key, value] of Object.entries(translations)) {
             this.cachedData.translations.set(key, value);
         }
     }

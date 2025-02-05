@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { ProbeWebClient } from "../probe";
 
-export async function insertArray(client: ProbeWebClient | null) {
+export async function insertItemArray(client: ProbeWebClient | null) {
     if (client === null) { return; }
 
     let resp0 = await client.get<string[]>('/api/registries');
@@ -23,5 +23,28 @@ export async function insertArray(client: ProbeWebClient | null) {
 
     let filteredKeys = keys.filter(key => regex.test(key));
     let snippetString = JSON.stringify(filteredKeys, null, 4);
+    vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(snippetString));
+}
+
+export async function insertLangKeys(client: ProbeWebClient | null) {
+    if (client === null) { return; }
+
+    let resp0 = await client.get<{ [key: string]: string }>('/api/missing-lang-keys');
+    if (!resp0) { vscode.window.showErrorMessage("Failed to get missing lang keys"); return; }
+
+    let keys = resp0.data;
+    let regexFilter = await vscode.window.showInputBox({ prompt: "Regex filter for keys" });
+    if (regexFilter === undefined) { return; }
+    if (regexFilter === "") { regexFilter = ".*"; }
+    let regex = new RegExp(regexFilter);
+
+    let filteredLangs: { [key: string]: string } = {};
+    for (let key in keys) {
+        if (regex.test(key)) { filteredLangs[key] = keys[key]; }
+    }
+
+    let snippetString = JSON.stringify(filteredLangs, null, 4);
+    snippetString = snippetString.replace(/^\s*{\s*/, '');
+    snippetString = snippetString.replace(/\s*}\s*$/, '');
     vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(snippetString));
 }

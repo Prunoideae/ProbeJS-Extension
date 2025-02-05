@@ -16,7 +16,7 @@ export class ProbeImages {
             return this.imageCache.get(url)!;
         }
 
-        let resp = await this.client.get(url);
+        let resp = await this.client.get(url, 1000);
         console.log(url, resp);
         if (resp) {
             let xHeader = resp.headers['x-kubejs-cache-key'];
@@ -33,6 +33,8 @@ export class ProbeImages {
                 }
             }
 
+        } else {
+            return null;
         }
         this.imageCache.set(url, null);
         return null;
@@ -107,5 +109,20 @@ export class ProbeImages {
 
     public async getBlockTagImage(namespace: string, path: string, size: number = 16): Promise<vscode.Uri | null> {
         return await this.getTagImage("block", namespace, path, size);
+    }
+
+    public async getTags(registryType: string, object: string): Promise<string[]> {
+        if (!this.client.mcConnected()) { return []; }
+
+        if (!registryType.includes(":")) { registryType = "minecraft:" + registryType; }
+        if (!object.includes(":")) { object = "minecraft:" + object; }
+
+        let [regNamespace, regPath] = registryType.split(":");
+        let [objNamespace, objPath] = object.split(":");
+
+        let url = `/api/tags/${regNamespace}/${regPath}/keys/${objNamespace}/${objPath}`;
+        let resp = await this.client.get<string[]>(url);
+        console.log(resp);
+        return resp?.data ?? [];
     }
 }

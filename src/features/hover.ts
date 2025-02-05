@@ -7,8 +7,6 @@ export class ProbeHover implements vscode.HoverProvider {
 
     }
 
-
-
     async provideHover(document: vscode.TextDocument, position: vscode.Position, token: vscode.CancellationToken): Promise<vscode.Hover | null | undefined> {
         // get currently selected text and test if position is within selected range
         const selectedRange = vscode.window.activeTextEditor?.selection;
@@ -25,6 +23,17 @@ export class ProbeHover implements vscode.HoverProvider {
             let imageUri = await this.httpClient?.getItemImage(parsed.id, parsed.components, 64);
             if (imageUri) {
                 images.appendMarkdown(`### Item Image\n\n![Item Image](${imageUri})\n\n`);
+                let tags = await this.httpClient?.getTags('minecraft:item', parsed.id);
+                if (tags) {
+                    images.appendMarkdown(`\n\n`);
+                    await Promise.all(tags.map(async (tag) => {
+                        let [namespace, path] = tag.split(':');
+                        let tagImageUri = await this.httpClient?.getItemTagImage(namespace, path, 16);
+                        if (tagImageUri) {
+                            images.appendMarkdown(`- ![Tag Image](${tagImageUri}) ${tag}\n`);
+                        }
+                    }));
+                }
             }
         }
 
@@ -32,6 +41,17 @@ export class ProbeHover implements vscode.HoverProvider {
             let imageUri = await this.httpClient?.getBlockIamge(parsed.id, parsed.components ? utils.parseBlockState(parsed.components) : new Map(), 64);
             if (imageUri) {
                 images.appendMarkdown(`### Block Image\n\n![Block Image](${imageUri})\n\n`);
+                let tags = await this.httpClient?.getTags('minecraft:block', parsed.id);
+                if (tags) {
+                    images.appendMarkdown(`\n\n`);
+                    await Promise.all(tags.map(async (tag) => {
+                        let [namespace, path] = tag.split(':');
+                        let tagImageUri = await this.httpClient?.getBlockTagImage(namespace, path, 16);
+                        if (tagImageUri) {
+                            images.appendMarkdown(`- ![Tag Image](${tagImageUri}) ${tag}\n`);
+                        }
+                    }));
+                }
             }
         }
 

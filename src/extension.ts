@@ -9,7 +9,7 @@ import { ReloadProvider } from './reload';
 import { ProbeWebClient } from './probe';
 import { ProbeImages } from './features/imageClient';
 import path = require('path');
-import { insertArray } from './features/insertArrays';
+import { insertItemArray, insertLangKeys } from './features/insertArrays';
 
 let probeClient: ProbeWebClient | null = null;
 
@@ -23,8 +23,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	let config = project.webServerConfig;
 
 	if (config['enabled']) {
-		let port = config['port'] ?? 61423;
-		probeClient = new ProbeWebClient(port);
+		probeClient = new ProbeWebClient(config.port ?? 61423, "Bearer " + config.auth);
 		let probeImages = new ProbeImages(probeClient);
 		setupInsertions(probeClient);
 
@@ -66,7 +65,8 @@ export async function activate(context: vscode.ExtensionContext) {
 				probeDecorator.clearCache();
 				if (vscode.window.activeTextEditor) { await probeDecorator.decorate(); }
 			}),
-			vscode.commands.registerCommand('probejs.insertArray', async () => await insertArray(probeClient)),
+			vscode.commands.registerCommand('probejs.insertArray', async () => await insertItemArray(probeClient)),
+			vscode.commands.registerCommand('probejs.insertLangKeys', async () => await insertLangKeys(probeClient)),
 		);
 
 		function configureTSPlugin() {
@@ -82,6 +82,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			api.configurePlugin('sample', {
 				enabled: probeClient?.mcConnected(),
 				port: probeClient?.connectedPort(),
+				auth: "Bearer " + config.auth,
 				imageBasePath: `${vscode.Uri.file(uri)}`
 			});
 		}
