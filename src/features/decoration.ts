@@ -154,6 +154,9 @@ export class ProbeDecorator {
             content = content.replace(/(^['"])|(['"]$)/g, '"');
             content = JSON.parse(content);
 
+            if (!content.includes(":")) {
+                continue;
+            }
             let imageUri = await this.guessImageBase64(content);
 
             if (!imageUri) {

@@ -18,5 +18,8 @@
 	},
 	"exclude": [
 		"sample"
+	],
+	"include": [
+		"src/**/*.ts"
 	]
 }

@@ -9,7 +9,7 @@ import { ReloadProvider } from './reload';
 import { ProbeWebClient } from './probe';
 import { ProbeImages } from './features/imageClient';
 import path = require('path');
-import { insertItemArray, insertLangKeys } from './features/insertArrays';
+import { insertItemArray, insertItemArrayFromTags, insertLangKeys, insertRecipeJson } from './features/insertCommands';
 
 let probeClient: ProbeWebClient | null = null;
 
@@ -66,7 +66,9 @@ export async function activate(context: vscode.ExtensionContext) {
 				if (vscode.window.activeTextEditor) { await probeDecorator.decorate(); }
 			}),
 			vscode.commands.registerCommand('probejs.insertArray', async () => await insertItemArray(probeClient)),
+			vscode.commands.registerCommand('probejs.insertArrayFromTags', async () => await insertItemArrayFromTags(probeClient)),
 			vscode.commands.registerCommand('probejs.insertLangKeys', async () => await insertLangKeys(probeClient)),
+			vscode.commands.registerCommand('probejs.insertRecipeJson', async () => await insertRecipeJson(probeClient)),
 		);
 
 		function configureTSPlugin() {

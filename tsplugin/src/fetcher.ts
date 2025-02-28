@@ -92,7 +92,9 @@ export class DynamicRegistry {
             });
         }
 
-        this.cachedData.recipeIds = ((await getWithAuth<string[]>("/api/recipe-ids", this.auth)) ?? []).map(id => {
+        this.cachedData.recipeIds = this.processRecipeIds(
+            await getWithAuth<{ [key: string]: string[] }>("/api/probejs/recipe-ids", this.auth)
+        ).map(id => {
             return {
                 displayName: id,
                 actual: id,
@@ -100,10 +102,19 @@ export class DynamicRegistry {
             };
         });
 
-        const translations = await getWithAuth<{ [key: string]: string }>("/api/lang-keys", this.auth) ?? {};
+        const translations = await getWithAuth<{ [key: string]: string }>("/api/probejs/lang-keys", this.auth) ?? {};
         for (const [key, value] of Object.entries(translations)) {
             this.cachedData.translations.set(key, value);
         }
+    }
+
+    private processRecipeIds(recipeIds: { [key: string]: string[] } | undefined): string[] {
+        if (!recipeIds) { return []; }
+        let result: string[] = [];
+        for (const values of Object.values(recipeIds)) {
+            result.push(...values);
+        }
+        return result;
     }
 
     public getItemPath(name: string): string | undefined {

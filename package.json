@@ -20,8 +20,16 @@
         "title": "ProbeJS: Insert Array of Literals"
       },
       {
+        "command": "probejs.insertArrayFromTags",
+        "title": "ProbeJS: Insert Array of Literal from Tags"
+      },
+      {
         "command": "probejs.insertLangKeys",
         "title": "ProbeJS: Insert Missing Language Keys"
+      },
+      {
+        "command": "probejs.insertRecipeJson",
+        "title": "ProbeJS: Insert Recipe JSON"
       }
     ],
     "typescriptServerPlugins": [
