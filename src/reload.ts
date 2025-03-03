@@ -11,7 +11,7 @@ export class ReloadProvider implements vscode.CodeLensProvider {
     }
 
     provideCodeLenses(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.ProviderResult<vscode.CodeLens[]> {
-        const firstLineRange = new vscode.Range(0, 0, 0, Number.MAX_VALUE);
+        const firstLineRange = new vscode.Range(0, 0, 0, 0);
         const codeLenses: vscode.CodeLens[] = [];
 
         // check for script type.
