@@ -4,7 +4,7 @@
   "description": "VSCode-Minecraft interop for ProbeJS",
   "version": "0.4.2",
   "engines": {
-    "vscode": "^1.78.0"
+    "vscode": "^1.100.0"
   },
   "categories": [
     "Other"
@@ -36,6 +36,82 @@
       {
         "name": "sample"
       }
+    ],
+    "languageModelTools": [
+      {
+        "name": "probejs-query_by_regex",
+        "displayName": "Query by Regex",
+        "tags": [
+          "minecraft",
+          "listing",
+          "regex",
+          "query"
+        ],
+        "toolReferenceName": "queryRegistryObjectsByRegex",
+        "canBeReferencedInPrompt": true,
+        "modelDescription": "Fetch object strings from the Minecraft registry that match a set of given regex patterns. E.g. minecraft:diamond, minecraft:oak_log for item, minecraft:crafting_table for block, etc.",
+        "icon": "$(files)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "queries": {
+              "type": "array",
+              "description": "An array of objects containing regex patterns and a exclude flag. The string should match all patterns and not match any excluded patterns to be returned.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "pattern": {
+                    "type": "string",
+                    "description": "The regex pattern to match against strings."
+                  },
+                  "exclude": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "If true, objects matching this pattern will be excluded from the results."
+                  }
+                },
+                "required": [
+                  "pattern"
+                ]
+              }
+            },
+            "registry": {
+              "type": "string",
+              "description": "The registry to query objects from."
+            }
+          },
+          "required": [
+            "registry",
+            "queries"
+          ]
+        }
+      },
+      {
+        "name": "probejs-list_registries",
+        "displayName": "List Registries",
+        "tags": [
+          "minecraft",
+          "listing",
+          "regex",
+          "registry"
+        ],
+        "toolReferenceName": "listRegistries",
+        "canBeReferencedInPrompt": true,
+        "modelDescription": "List all registries available in the Minecraft game by a regex filter. E.g. minecraft:item, minecraft:block, etc.",
+        "icon": "$(list-selection)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "pattern": {
+              "type": "string",
+              "description": "The regex pattern to match against registry names. Strongly advised to use a pattern, or all registries (~5k bytes!) will be returned."
+            }
+          },
+          "required": [
+            "pattern"
+          ]
+        }
+      }
     ]
   },
   "scripts": {
@@ -52,7 +128,7 @@
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.1",
     "@types/node": "16.x",
-    "@types/vscode": "^1.78.0",
+    "@types/vscode": "^1.100.0",
     "@types/ws": "^8.5.10",
     "@typescript-eslint/eslint-plugin": "^5.59.1",
     "@typescript-eslint/parser": "^5.59.1",

@@ -21,12 +21,24 @@ export async function insertItemArray(client: ProbeWebClient | null) {
     if (!resp1) { vscode.window.showErrorMessage("Failed to get available keys"); return; }
 
     let keys = resp1.data;
-    let regexFilter = await vscode.window.showInputBox({ prompt: "Regex filter for keys" });
+    let regexFilter = await vscode.window.showInputBox({ prompt: "Regex filter for keys, ; for separating multiple queries, ! for exclude" });
     if (regexFilter === undefined) { return; }
     if (regexFilter === "") { regexFilter = ".*"; }
-    let regex = new RegExp(regexFilter);
+    let allQueries = regexFilter.split(';')
+        .map(q => q.trim())
+        .map(q => q.startsWith('!') ? { exclude: true, query: new RegExp(q.substring(1)) } : { exclude: false, query: new RegExp(q) });
 
-    let filteredKeys = keys.filter(key => regex.test(key));
+    let filteredKeys = keys.filter(key => {
+        for (const query of allQueries) {
+            if (query.exclude && query.query.test(key)) {
+                return false;
+            } else if (!query.exclude && !query.query.test(key)) {
+                return false;
+            }
+        }
+        return true;
+    });
+    filteredKeys.sort((a, b) => a.localeCompare(b));
     let snippetString = JSON.stringify(filteredKeys, null, 4);
     vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(snippetString));
 }
@@ -58,8 +70,7 @@ export async function insertItemArrayFromTags(client: ProbeWebClient | null) {
         if (!resp2) { vscode.window.showErrorMessage("Failed to get available values"); return; }
         values.push(resp2.data);
     }
-    if (values.length === 1) { values = values[0]; }
-
+    if (values.length === 1) { values = values[0]; values.sort((a, b) => a.localeCompare(b)); }
     let snippetString = JSON.stringify(values, null, 4);
     vscode.window.activeTextEditor?.insertSnippet(new vscode.SnippetString(snippetString));
 }

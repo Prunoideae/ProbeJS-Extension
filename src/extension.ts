@@ -10,6 +10,7 @@ import { ProbeWebClient } from './probe';
 import { ProbeImages } from './features/imageClient';
 import path = require('path');
 import { insertItemArray, insertItemArrayFromTags, insertLangKeys, insertRecipeJson } from './features/insertCommands';
+import { registerChatTools } from './features/copilot';
 
 let probeClient: ProbeWebClient | null = null;
 
@@ -26,6 +27,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		probeClient = new ProbeWebClient(config.port ?? 61423, "Bearer " + config.auth);
 		let probeImages = new ProbeImages(probeClient);
 		setupInsertions(probeClient);
+
 
 		let jumpSourceProvider = new JavaSourceProvider(project.decompiledPath);
 		let traceProvider = new StacktraceSourceProvider(project.decompiledPath);
@@ -54,8 +56,12 @@ export async function activate(context: vscode.ExtensionContext) {
 		);
 
 		const probeDecorator = new ProbeDecorator(probeImages);
-		probeClient.onConnected(async () => { context.subscriptions.push(await probeDecorator.setupDecoration()); });
+		probeClient.onConnected(async () => {
+			context.subscriptions.push(await probeDecorator.setupDecoration());
+		});
 
+		registerChatTools(context, probeClient);
+		
 		context.subscriptions.push(
 			vscode.commands.registerCommand('probejs.reconnect', async () => {
 				if (!await probeClient?.tryConnect(false)) {

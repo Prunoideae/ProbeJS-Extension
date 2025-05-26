@@ -20,6 +20,9 @@ export class ProbeDecorator {
     // Matches a JS string, including escaped quotes: "foo" or 'bar'
     private readonly _matcherJSString = /(["'])(?:(?=(\\?))\2.)*?\1/g;
 
+    // Matches a color int, usually 0xRRGGBB or 0xAARRGGBB
+    private readonly _matcherColorInt = /0x[0-9A-Fa-f]{6,8}/g;
+
     private readonly _style = vscode.window.createTextEditorDecorationType({
         borderWidth: '1px',
         borderStyle: 'solid',
@@ -49,6 +52,7 @@ export class ProbeDecorator {
 
     private _textEditor: vscode.TextEditor | undefined;
     private _cachedImages: Map<string, vscode.Uri | null> = new Map();
+    private _previousColors: [vscode.TextEditorDecorationType, vscode.DecorationOptions[]][] = [];
     private _setup = false;
 
     constructor(private readonly images: ProbeImages) {
@@ -116,6 +120,22 @@ export class ProbeDecorator {
         this._cachedImages.set(content, uri);
         return uri;
     }
+    private getColorFromHex(hex: string): string {
+        let r, g, b;
+        if (hex.length === 10) {
+            // It's too cursed to have alpha of very low, we can't see the text
+            r = parseInt(hex.slice(4, 6), 16);
+            g = parseInt(hex.slice(6, 8), 16);
+            b = parseInt(hex.slice(8, 10), 16);
+        } else {
+
+            r = parseInt(hex.slice(2, 4), 16);
+            g = parseInt(hex.slice(4, 6), 16);
+            b = parseInt(hex.slice(6, 8), 16);
+        }
+        let colorStyle = `rgba(${r}, ${g}, ${b}, 1)`;
+        return colorStyle;
+    }
 
     public async decorate() {
         if (!this._textEditor) {
@@ -176,7 +196,45 @@ export class ProbeDecorator {
                 }
             };
             stringDecorations.push(decoration);
+        }
 
+        let colorValues: Map<string, vscode.DecorationOptions[]> = new Map();
+        while ((match = this._matcherColorInt.exec(text)) !== null) {
+            const startPos = this._textEditor.document.positionAt(match.index);
+            const endPos = this._textEditor.document.positionAt(match.index + match[0].length);
+
+            let content = match[0];
+            let key = this.getColorFromHex(content);
+
+            if (!colorValues.has(key)) {
+                colorValues.set(key, []);
+            }
+            colorValues.get(key)!.push({
+                range: new vscode.Range(startPos, endPos),
+            });
+        }
+
+        for (let [key, value] of this._previousColors) {
+            this._textEditor.setDecorations(key, []);
+        }
+
+        for (let [key, value] of colorValues) {
+            const colorType: vscode.TextEditorDecorationType = vscode.window.createTextEditorDecorationType({
+                borderWidth: '1px',
+                borderStyle: 'solid',
+                borderRadius: '3px',
+                overviewRulerLane: vscode.OverviewRulerLane.Right,
+                light: {
+                    borderColor: key,
+                    color: key
+                },
+                dark: {
+                    borderColor: key,
+                    color: key
+                }
+            });
+            this._textEditor.setDecorations(colorType, value);
+            this._previousColors.push([colorType, value]);
         }
 
         this._textEditor.setDecorations(this._style, decorations);
