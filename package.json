@@ -56,7 +56,7 @@
           "properties": {
             "queries": {
               "type": "array",
-              "description": "An array of objects containing regex patterns and a exclude flag. The string should match all patterns and not match any excluded patterns to be returned.",
+              "description": "An array of objects containing regex patterns and a exclude flag. The array represents AND logic. Use individual calls for OR.",
               "items": {
                 "type": "object",
                 "properties": {
@@ -111,6 +111,141 @@
             "pattern"
           ]
         }
+      },
+      {
+        "name": "probejs-list_supported_recips",
+        "displayName": "List Supported Recipes",
+        "tags": [
+          "minecraft",
+          "listing",
+          "recipe",
+          "regex"
+        ],
+        "toolReferenceName": "listSupportedRecipes",
+        "canBeReferencedInPrompt": true,
+        "modelDescription": "List all supported recipes available in the Minecraft game by a regex filter. E.g. minecraft:crafting, minecraft:smelting, etc. If the game does not have a recipe type, there is no way to add support for it.",
+        "icon": "$(list-selection)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "pattern": {
+              "type": "string",
+              "description": "The regex pattern to match against recipe names. Strongly advised to use a pattern, or all recipes types will be returned."
+            }
+          },
+          "required": [
+            "pattern"
+          ]
+        }
+      },
+      {
+        "name": "probejs-fetch_recipe_docs",
+        "displayName": "Fetch Recipe Documentation",
+        "tags": [
+          "minecraft",
+          "recipe",
+          "documentation"
+        ],
+        "toolReferenceName": "fetchRecipeDocs",
+        "canBeReferencedInPrompt": true,
+        "modelDescription": "Fetch documentation for a list of recipe types in the Minecraft game. E.g. minecraft:crafting, minecraft:smelting, etc. The runtime will provide the true documentation specific to this game instance, do not use other sources.",
+        "icon": "$(book)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "recipeTypes": {
+              "type": "array",
+              "description": "List of recipe types to fetch documentation for. Should be supported by the game.",
+              "items": {
+                "type": "string",
+                "description": "The recipe type to fetch documentation for, e.g. minecraft:crafting, minecraft:smelting, etc."
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "probejs-query_tags_by_regex",
+        "displayName": "Query Tags by Regex",
+        "tags": [
+          "minecraft",
+          "tags",
+          "regex",
+          "query"
+        ],
+        "toolReferenceName": "queryTagsByRegex",
+        "canBeReferencedInPrompt": true,
+        "modelDescription": "Fetch tag strings from the Minecraft registry that match a set of given regex patterns. Tags are groups of objects in Minecraft, e.g. c:ores, minecraft:logs, etc.",
+        "icon": "$(book)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "queries": {
+              "type": "array",
+              "description": "An array of objects containing regex patterns and a exclude flag. The array represents AND logic. Use individual calls for OR.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "pattern": {
+                    "type": "string",
+                    "description": "The regex pattern to match against tag names. Strongly advised to use a pattern, or all tags will be returned."
+                  },
+                  "exclude": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "If true, tags matching this pattern will be excluded from the results."
+                  }
+                },
+                "required": [
+                  "pattern"
+                ]
+              }
+            },
+            "registry": {
+              "type": "string",
+              "description": "The registry to query tags from."
+            }
+          },
+          "required": [
+            "registry",
+            "queries"
+          ]
+        }
+      },
+      {
+        "name": "probejs-query_tagged_objects",
+        "displayName": "Query Tagged Objects",
+        "tags": [
+          "minecraft",
+          "tags",
+          "objects",
+          "query"
+        ],
+        "toolReferenceName": "queryTaggedObjects",
+        "canBeReferencedInPrompt": true,
+        "modelDescription": "Fetch objects that belong to specific tags in the Minecraft registry. Given a registry and a list of tags, returns all objects that are tagged with those tags.",
+        "icon": "$(book)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "registry": {
+              "type": "string",
+              "description": "The registry to query tagged objects from."
+            },
+            "tags": {
+              "type": "array",
+              "description": "List of tags to fetch objects for.",
+              "items": {
+                "type": "string",
+                "description": "The tag name to fetch objects for, e.g. c:ores, minecraft:logs, etc."
+              }
+            }
+          },
+          "required": [
+            "registry",
+            "tags"
+          ]
+        }
       }
     ]
   },
@@ -147,6 +282,7 @@
   "icon": "icon.png",
   "publisher": "Prunoideae",
   "dependencies": {
+    "@vscode/prompt-tsx": "^0.4.0-alpha.4",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "axios": "^1.7.3",
     "sample": "file:tsplugin",

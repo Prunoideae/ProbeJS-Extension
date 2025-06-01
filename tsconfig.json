@@ -20,6 +20,7 @@
 		"sample"
 	],
 	"include": [
-		"src/**/*.ts"
+		"src/**/*.ts",
+		"src/features/copilotPrompt.tsx"
 	]
 }
