@@ -11,6 +11,8 @@ import { ProbeImages } from './features/imageClient';
 import path = require('path');
 import { insertItemArray, insertItemArrayFromTags, insertLangKeys, insertRecipeJson } from './features/insertCommands';
 import { registerChatTools } from './features/copilot';
+import { TextContentProvider } from './features/textProvider';
+import { registerChatParticipant } from './features/copilotParticipant';
 
 let probeClient: ProbeWebClient | null = null;
 
@@ -22,12 +24,14 @@ export async function activate(context: vscode.ExtensionContext) {
 	let project = new ProbeJSProject(workspace);
 	if (!project.configAvailable) { return; }
 	let config = project.webServerConfig;
-
 	if (config['enabled']) {
+		// Create a new untitled document with a custom name
+		let schemeProvider = new TextContentProvider();
+		context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(TextContentProvider.scheme, schemeProvider));
+
 		probeClient = new ProbeWebClient(config.port ?? 61423, "Bearer " + config.auth);
 		let probeImages = new ProbeImages(probeClient);
 		setupInsertions(probeClient);
-
 
 		let jumpSourceProvider = new JavaSourceProvider(project.decompiledPath);
 		let traceProvider = new StacktraceSourceProvider(project.decompiledPath);
@@ -60,8 +64,9 @@ export async function activate(context: vscode.ExtensionContext) {
 			context.subscriptions.push(await probeDecorator.setupDecoration());
 		});
 
-		registerChatTools(context, probeClient);
-		
+		registerChatTools(context, probeClient, probeImages, schemeProvider);
+		registerChatParticipant(context);
+
 		context.subscriptions.push(
 			vscode.commands.registerCommand('probejs.reconnect', async () => {
 				if (!await probeClient?.tryConnect(false)) {

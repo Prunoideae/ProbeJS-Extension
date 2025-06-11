@@ -37,6 +37,16 @@
         "name": "sample"
       }
     ],
+    "chatParticipants": [
+      {
+        "id": "probejs.probeParticipant",
+        "fullName": "ProbeJS Report Generator",
+        "name": "ProbeJS",
+        "description": "Generates reports from Minecraft data.",
+        "isSticky": true,
+        "commands": []
+      }
+    ],
     "languageModelTools": [
       {
         "name": "probejs-query_by_regex",
@@ -54,26 +64,9 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "queries": {
-              "type": "array",
-              "description": "An array of objects containing regex patterns and a exclude flag. The array represents AND logic. Use individual calls for OR.",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "pattern": {
-                    "type": "string",
-                    "description": "The regex pattern to match against strings."
-                  },
-                  "exclude": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "If true, objects matching this pattern will be excluded from the results."
-                  }
-                },
-                "required": [
-                  "pattern"
-                ]
-              }
+            "pattern": {
+              "type": "string",
+              "description": "The regex pattern to match against strings."
             },
             "registry": {
               "type": "string",
@@ -82,7 +75,7 @@
           },
           "required": [
             "registry",
-            "queries"
+            "pattern"
           ]
         }
       },
@@ -161,7 +154,10 @@
                 "description": "The recipe type to fetch documentation for, e.g. minecraft:crafting, minecraft:smelting, etc."
               }
             }
-          }
+          },
+          "required": [
+            "recipeTypes"
+          ]
         }
       },
       {
@@ -180,26 +176,9 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "queries": {
-              "type": "array",
-              "description": "An array of objects containing regex patterns and a exclude flag. The array represents AND logic. Use individual calls for OR.",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "pattern": {
-                    "type": "string",
-                    "description": "The regex pattern to match against tag names. Strongly advised to use a pattern, or all tags will be returned."
-                  },
-                  "exclude": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "If true, tags matching this pattern will be excluded from the results."
-                  }
-                },
-                "required": [
-                  "pattern"
-                ]
-              }
+            "pattern": {
+              "type": "string",
+              "description": "The regex pattern to match against tag names. Strongly advised to use a pattern, or all tags will be returned."
             },
             "registry": {
               "type": "string",
@@ -208,7 +187,7 @@
           },
           "required": [
             "registry",
-            "queries"
+            "pattern"
           ]
         }
       },
@@ -244,6 +223,92 @@
           "required": [
             "registry",
             "tags"
+          ]
+        }
+      },
+      {
+        "name": "probejs-list_commands",
+        "displayName": "List Commands",
+        "tags": [
+          "minecraft",
+          "commands",
+          "listing",
+          "regex"
+        ],
+        "toolReferenceName": "listCommands",
+        "canBeReferencedInPrompt": true,
+        "modelDescription": "List all available commands in the Minecraft game by a regex filter.",
+        "icon": "$(terminal)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "pattern": {
+              "type": "string",
+              "description": "The regex pattern to match against command names. Strongly advised to use a pattern, or all commands will be returned."
+            }
+          },
+          "required": [
+            "pattern"
+          ]
+        }
+      },
+      {
+        "name": "probejs-run_commands",
+        "displayName": "Run Commands",
+        "tags": [
+          "minecraft",
+          "commands",
+          "execution"
+        ],
+        "toolReferenceName": "runCommands",
+        "canBeReferencedInPrompt": true,
+        "modelDescription": "Execute commands in the Minecraft game. This will run the commands as if they were entered in the game's chat/console one by one, in the order they are provided.",
+        "icon": "$(play)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "commands": {
+              "type": "array",
+              "description": "List of commands to execute in the game.",
+              "items": {
+                "type": "string",
+                "description": "A command to execute in the game."
+              }
+            }
+          },
+          "required": [
+            "commands"
+          ]
+        }
+      },
+      {
+        "name": "probejs-display_report",
+        "displayName": "Display Report",
+        "tags": [
+          "minecraft",
+          "report",
+          "display",
+          "markdown"
+        ],
+        "toolReferenceName": "displayReport",
+        "canBeReferencedInPrompt": true,
+        "modelDescription": "Display a markdown report in a new VS Code tab. This tool allows creating and displaying formatted reports with markdown content.",
+        "icon": "$(file-text)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "markdownContent": {
+              "type": "string",
+              "description": "The markdown content to display in the report."
+            },
+            "title": {
+              "type": "string",
+              "description": "The title of the report tab."
+            }
+          },
+          "required": [
+            "markdownContent",
+            "title"
           ]
         }
       }
@@ -282,6 +347,7 @@
   "icon": "icon.png",
   "publisher": "Prunoideae",
   "dependencies": {
+    "@vscode/chat-extension-utils": "^0.0.0-alpha.5",
     "@vscode/prompt-tsx": "^0.4.0-alpha.4",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "axios": "^1.7.3",
