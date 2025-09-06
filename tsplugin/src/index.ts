@@ -34,22 +34,28 @@ function init(modules: { typescript: typeof tss }): tss.server.PluginModule {
         }
     }
 
+    // const { $LevelChunk } = require("net.minecraft.world.level.chunk.LevelChunk")
+    let requireMatcher = /const\s+{\s*\$([^}]+)\s*}\s*=\s*require\("([^"]+)"\)/;
+
     function patchCodeAction(action: tss.CodeAction): tss.CodeAction {
         if (!enabled) { return action; }
+        if (!action.description.includes("Add import from")) { return action; }
+
         let newAction: tss.CodeAction = {
             ...action,
             changes: action.changes.map((change) => {
                 let newChange: tss.FileTextChanges = {
                     ...change,
                     textChanges: change.textChanges.map((textChange) => {
+                        // $Predicate + java.util.function.Predicate formats to:
+                        // /** @type {typeof import("java.util.function.Predicate").$Predicate} */
+                        // let $Predicate = Java.loadClass("java.util.function.Predicate")
+                        let [, variable, module] = textChange.newText.match(requireMatcher) ?? [];
+                        if (!variable || !module) { return textChange; }
+
                         let newTextChange: tss.TextChange = {
                             ...textChange,
-                            newText: textChange.newText
-                                .replace("{ ", "")
-                                .replace(" }", "")
-                                .replace("require", "Java.loadClass")
-                                .replace("const ", "let ")
-                                .replace("\n\n", "\n")
+                            newText: `/** @type {typeof import("${module}").$${variable}} */\nlet $${variable} = Java.loadClass("${module}")\n`
                         };
                         return newTextChange;
                     })
@@ -65,10 +71,7 @@ function init(modules: { typescript: typeof tss }): tss.server.PluginModule {
         prefix: string | undefined, registry: string
     ): tss.CompletionEntry {
         let detail = name.includes(":") && name !== displayName ? ` ${name.split(":")[0]}` : "";
-        if (prefix) {
-            name = prefix + name;
-            displayName = prefix + displayName;
-        }
+        if (prefix) { name = prefix + name; displayName = prefix + displayName; }
 
         return {
             name: displayName,
@@ -201,7 +204,8 @@ function init(modules: { typescript: typeof tss }): tss.server.PluginModule {
         }
 
         if (name.startsWith("translation")) {
-            return Array.from(data.translations.keys()).map((key) => makeCompletionItem(key, key, prefix, name));
+            return Array.from(data.translations.keys())
+                .map((key) => makeCompletionItem(key, key, prefix, name));
         }
 
         return [];

@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { ProbeWebClient } from '../probe';
-import { TextContentProvider } from './textProvider';
-import { ProbeImages } from './imageClient';
+import { TextContentProvider } from './display/textProvider';
+import { ProbeImages } from './display/imageClient';
 
 export function registerChatTools(context: vscode.ExtensionContext, client: ProbeWebClient, images: ProbeImages, textProvider: TextContentProvider) {
     context.subscriptions.push(vscode.lm.registerTool('probejs-list_registries', new RegistryListing(client)));

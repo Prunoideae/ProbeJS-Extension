@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
-import { ProbeWebClient } from "../probe";
-import { ConsoleInfo } from "../payload/consoleInfo";
+import { ProbeWebClient } from "../../probe";
+import { ConsoleInfo } from "../../payload/consoleInfo";
 import path = require("path");
-import { SessionInfo } from "../payload/sessionInfo";
+import { SessionInfo } from "../../payload/sessionInfo";
 
 export class InfoSync {
 

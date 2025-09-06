@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
-import * as utils from '../utils';
+import * as utils from '../../utils';
 import { ProbeImages } from './imageClient';
+import { ProbeWebClient } from '../../probe';
 
 async function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -17,11 +18,11 @@ export class ProbeDecorator {
     private readonly _matcher = /\/\/\s*(priority|requires|enabled|packmode):\s*(\w+)/g;
     // private readonly _matcher = /"minecraft:apple"/g;
 
-    // Matches a JS string, including escaped quotes: "foo" or 'bar'
-    private readonly _matcherJSString = /(["'])(?:(?=(\\?))\2.)*?\1/g;
+    // Matches a string that is a resource location e.g. "modid:item_name" or 'modid:item_name' or `modid:item_name` (a-z0-9, _, :, /)
+    private readonly _matcherRL = /(["'`])([a-z0-9_:/]+)\1/g;
 
-    // Matches a color int, usually 0xRRGGBB or 0xAARRGGBB
-    private readonly _matcherColorInt = /0x[0-9A-Fa-f]{6,8}/g;
+    // Matches a langkey, e.g. "kubejs.langkey.something" (a-zA-Z0-9, _, .)
+    private readonly _matcherLangKey = /(["'`])([a-zA-Z0-9_.]+)\1/g;
 
     private readonly _style = vscode.window.createTextEditorDecorationType({
         borderWidth: '1px',
@@ -46,25 +47,26 @@ export class ProbeDecorator {
     });
 
     // We insert icon here, so no need to decorate the string with different style
-    private readonly _styleJSString = vscode.window.createTextEditorDecorationType({
-
-    });
+    private readonly _styleRLString = vscode.window.createTextEditorDecorationType({});
 
     private _textEditor: vscode.TextEditor | undefined;
     private _cachedImages: Map<string, vscode.Uri | null> = new Map();
-    private _previousColors: [vscode.TextEditorDecorationType, vscode.DecorationOptions[]][] = [];
     private _setup = false;
+    private _langKeys: Map<string, string> = new Map();
+    private readonly _client: ProbeWebClient;
 
     constructor(private readonly images: ProbeImages) {
-
+        this._client = images.client;
     }
 
     public set editor(editor: vscode.TextEditor) {
         this._textEditor = editor;
+        this._langKeys.clear();
     }
 
     public clearCache() {
         this._cachedImages.clear();
+        this._langKeys.clear();
     }
 
     public async setupDecoration(): Promise<vscode.Disposable> {
@@ -120,22 +122,6 @@ export class ProbeDecorator {
         this._cachedImages.set(content, uri);
         return uri;
     }
-    private getColorFromHex(hex: string): string {
-        let r, g, b;
-        if (hex.length === 10) {
-            // It's too cursed to have alpha of very low, we can't see the text
-            r = parseInt(hex.slice(4, 6), 16);
-            g = parseInt(hex.slice(6, 8), 16);
-            b = parseInt(hex.slice(8, 10), 16);
-        } else {
-
-            r = parseInt(hex.slice(2, 4), 16);
-            g = parseInt(hex.slice(4, 6), 16);
-            b = parseInt(hex.slice(6, 8), 16);
-        }
-        let colorStyle = `rgba(${r}, ${g}, ${b}, 1)`;
-        return colorStyle;
-    }
 
     public async decorate() {
         if (!this._textEditor) {
@@ -161,7 +147,7 @@ export class ProbeDecorator {
             decorations.push(decoration);
         }
 
-        while ((match = this._matcherJSString.exec(text)) !== null) {
+        while ((match = this._matcherRL.exec(text)) !== null) {
             const startPos = this._textEditor.document.positionAt(match.index);
             const endPos = this._textEditor.document.positionAt(match.index + match[0].length);
 
@@ -170,8 +156,12 @@ export class ProbeDecorator {
                 // escape double quotes since it won't be escaped in single quotes
                 content = content.replace(/"/g, '\\"');
             }
-            // replace only the start and end single quotes to double quotes
-            content = content.replace(/(^['"])|(['"]$)/g, '"');
+            if (content.startsWith("`")) {
+                // escape double quotes since they won't be escaped in backticks
+                content = content.replace(/"/g, '\\"');
+            }
+            // replace only the start and end quotes (single, double, or backtick) to double quotes
+            content = content.replace(/(^['"`])|(['"`]$)/g, '"');
             content = JSON.parse(content);
 
             if (!content.includes(":")) {
@@ -198,46 +188,39 @@ export class ProbeDecorator {
             stringDecorations.push(decoration);
         }
 
-        let colorValues: Map<string, vscode.DecorationOptions[]> = new Map();
-        while ((match = this._matcherColorInt.exec(text)) !== null) {
+        if (this._langKeys.size === 0) {
+            let langKeys = (await this._client.get<{ [key: string]: string }>("/api/probejs/lang-keys"))?.data;
+            if (langKeys) {
+                for (const [key, value] of Object.entries(langKeys)) {
+                    this._langKeys.set(key, value);
+                }
+            }
+        }
+
+        while ((match = this._matcherLangKey.exec(text)) !== null) {
             const startPos = this._textEditor.document.positionAt(match.index);
             const endPos = this._textEditor.document.positionAt(match.index + match[0].length);
 
             let content = match[0];
-            let key = this.getColorFromHex(content);
-
-            if (!colorValues.has(key)) {
-                colorValues.set(key, []);
+            if (content.startsWith("'")) {
+                content = content.replace(/"/g, '\\"');
             }
-            colorValues.get(key)!.push({
-                range: new vscode.Range(startPos, endPos),
-            });
-        }
+            if (content.startsWith("`")) {
+                content = content.replace(/"/g, '\\"');
+            }
+            content = content.replace(/(^['"`])|(['"`]$)/g, '"');
+            content = JSON.parse(content);
 
-        for (let [key, value] of this._previousColors) {
-            this._textEditor.setDecorations(key, []);
-        }
-
-        for (let [key, value] of colorValues) {
-            const colorType: vscode.TextEditorDecorationType = vscode.window.createTextEditorDecorationType({
-                borderWidth: '1px',
-                borderStyle: 'solid',
-                borderRadius: '3px',
-                overviewRulerLane: vscode.OverviewRulerLane.Right,
-                light: {
-                    borderColor: key,
-                    color: key
-                },
-                dark: {
-                    borderColor: key,
-                    color: key
-                }
-            });
-            this._textEditor.setDecorations(colorType, value);
-            this._previousColors.push([colorType, value]);
+            if (this._langKeys.has(content)) {
+                const decoration: vscode.DecorationOptions = {
+                    range: new vscode.Range(startPos, endPos),
+                    hoverMessage: this._langKeys.get(content),
+                };
+                decorations.push(decoration);
+            }
         }
 
         this._textEditor.setDecorations(this._style, decorations);
-        this._textEditor.setDecorations(this._styleJSString, stringDecorations);
+        this._textEditor.setDecorations(this._styleRLString, stringDecorations);
     }
 }

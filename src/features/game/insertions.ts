@@ -1,8 +1,8 @@
 import * as vscode from "vscode";
-import { ProbeWebClient } from "../probe";
-import { HighlightItem, HighlightedItems, toComponentString } from "../payload/highlightItems";
-import { HighlighBlock, toPropertyString } from "../payload/highlightBlock";
-import { SessionInfo } from "../payload/sessionInfo";
+import { ProbeWebClient } from "../../probe";
+import { HighlightItem, HighlightedItems, toComponentString } from "../../payload/highlightItems";
+import { HighlighBlock, toPropertyString } from "../../payload/highlightBlock";
+import { SessionInfo } from "../../payload/sessionInfo";
 
 export function setupInsertions(probeClient: ProbeWebClient) {
     // Used for minecraft shaped recipes

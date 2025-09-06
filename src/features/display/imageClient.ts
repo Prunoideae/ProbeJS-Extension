@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { ProbeWebClient } from "../probe";
+import { ProbeWebClient } from "../../probe";
 import path = require("path");
 
 export class ProbeImages {

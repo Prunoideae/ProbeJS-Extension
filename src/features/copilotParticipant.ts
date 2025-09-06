@@ -1,9 +1,6 @@
 
 import * as vscode from 'vscode';
-import { ParticipantPrompt } from './copilotPrompt';
-import { PromptElementAndProps } from '@vscode/chat-extension-utils/dist/toolsPrompt';
 import { sendChatParticipantRequest } from '@vscode/chat-extension-utils';
-import { ReadableStream } from 'stream/web';
 
 export function registerChatParticipant(context: vscode.ExtensionContext) {
     let probeParticipant = new CopilotParticipant(context);

@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ProbeWebClient } from "../probe";
+import { ProbeWebClient } from "../../probe";
 
 function splitEncode(rl: string): [string, string] {
     let [namespace, path] = rl.split(':');

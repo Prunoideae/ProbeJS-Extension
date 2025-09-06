@@ -14,6 +14,12 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "snippets": [
+      {
+        "language": "javascript",
+        "path": "./snippets.json"
+      }
+    ],
     "commands": [
       {
         "command": "probejs.insertArray",
@@ -30,6 +36,10 @@
       {
         "command": "probejs.insertRecipeJson",
         "title": "ProbeJS: Insert Recipe JSON"
+      },
+      {
+        "command": "probejs.generateTranslation",
+        "title": "ProbeJS: Generate Translation Key"
       }
     ],
     "typescriptServerPlugins": [

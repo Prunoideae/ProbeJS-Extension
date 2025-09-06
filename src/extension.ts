@@ -1,18 +1,21 @@
 import * as vscode from 'vscode';
-import { ProbeDecorator } from './features/decoration';
-import { InfoSync } from './features/errorSync';
-import { ProbeHover } from './features/hover';
-import { setupInsertions } from './features/insertions';
-import { JavaSourceProvider, StacktraceSourceProvider } from './features/jumpToSource';
+import { ProbeDecorator } from './features/display/decoration';
+import { InfoSync } from './features/game/errorSync';
+import { ProbeHover } from './features/display/hover';
+import { setupInsertions } from './features/game/insertions';
 import { ProbeJSProject } from './project';
 import { ReloadProvider } from './reload';
 import { ProbeWebClient } from './probe';
-import { ProbeImages } from './features/imageClient';
+import { ProbeImages } from './features/display/imageClient';
 import path = require('path');
-import { insertItemArray, insertItemArrayFromTags, insertLangKeys, insertRecipeJson } from './features/insertCommands';
+import { insertItemArray, insertItemArrayFromTags, insertLangKeys, insertRecipeJson } from './features/commands/insertCommands';
 import { registerChatTools } from './features/copilot';
-import { TextContentProvider } from './features/textProvider';
+import { TextContentProvider } from './features/display/textProvider';
 import { registerChatParticipant } from './features/copilotParticipant';
+import { extractTranslationKey } from './features/commands/extractCommand';
+import { warnHardcodedLang } from './features/rules/warnHardcodedLang';
+import { registerConversion } from './features/rules/tsToJsTypeAnnotation';
+import { ProbeColorProvider } from './features/colorProvider';
 
 let probeClient: ProbeWebClient | null = null;
 
@@ -25,6 +28,12 @@ export async function activate(context: vscode.ExtensionContext) {
 	if (!project.configAvailable) { return; }
 	let config = project.webServerConfig;
 	if (config['enabled']) {
+		warnHardcodedLang(context);
+		registerConversion(context);
+		context.subscriptions.push(
+			vscode.languages.registerColorProvider('javascript', new ProbeColorProvider()),
+		);
+
 		// Create a new untitled document with a custom name
 		let schemeProvider = new TextContentProvider();
 		context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider(TextContentProvider.scheme, schemeProvider));
@@ -33,24 +42,13 @@ export async function activate(context: vscode.ExtensionContext) {
 		let probeImages = new ProbeImages(probeClient);
 		setupInsertions(probeClient);
 
-		let jumpSourceProvider = new JavaSourceProvider(project.decompiledPath);
-		let traceProvider = new StacktraceSourceProvider(project.decompiledPath);
 		let reloadProvider = new ReloadProvider(probeClient);
 		context.subscriptions.push(
-			vscode.languages.registerCodeLensProvider('javascript', jumpSourceProvider),
-			vscode.commands.registerCommand('probejs.jumpToSource', jumpSourceProvider.jumpToSource.bind(jumpSourceProvider)),
-			vscode.languages.registerCodeLensProvider('plaintext', traceProvider),
-			vscode.commands.registerCommand('probejs.jumpToStackSource', traceProvider.jumpToSource.bind(traceProvider)),
 			vscode.languages.registerCodeLensProvider('javascript', reloadProvider),
 			vscode.commands.registerCommand('probejs.reloadScript', reloadProvider.reloadScript.bind(reloadProvider)),
 		);
 
 		let sync = new InfoSync(probeClient);
-
-		// let evaluateProvider = new EvaluateProvider(probeClient, sync);
-		// vscode.languages.registerCodeLensProvider('javascript', evaluateProvider);
-		// vscode.commands.registerCommand('probejs.evaluate', evaluateProvider.evaluate.bind(evaluateProvider));
-
 		let hover = new ProbeHover(probeImages);
 		context.subscriptions.push(
 			vscode.languages.registerHoverProvider('javascript', hover),
@@ -58,11 +56,8 @@ export async function activate(context: vscode.ExtensionContext) {
 			vscode.languages.registerHoverProvider('json', hover),
 			vscode.languages.registerHoverProvider('toml', hover),
 		);
-
 		const probeDecorator = new ProbeDecorator(probeImages);
-		probeClient.onConnected(async () => {
-			context.subscriptions.push(await probeDecorator.setupDecoration());
-		});
+		probeClient.onConnected(async () => { context.subscriptions.push(await probeDecorator.setupDecoration()); });
 
 		registerChatTools(context, probeClient, probeImages, schemeProvider);
 		registerChatParticipant(context);
@@ -80,6 +75,7 @@ export async function activate(context: vscode.ExtensionContext) {
 			vscode.commands.registerCommand('probejs.insertArrayFromTags', async () => await insertItemArrayFromTags(probeClient)),
 			vscode.commands.registerCommand('probejs.insertLangKeys', async () => await insertLangKeys(probeClient)),
 			vscode.commands.registerCommand('probejs.insertRecipeJson', async () => await insertRecipeJson(probeClient)),
+			vscode.commands.registerCommand('probejs.generateTranslation', async () => await extractTranslationKey())
 		);
 
 		function configureTSPlugin() {
@@ -102,7 +98,6 @@ export async function activate(context: vscode.ExtensionContext) {
 
 		// hello vscode!
 		vscode.window.showInformationMessage('ProbeJS Extension is now active!');
-
 		const tsExtension = vscode.extensions.getExtension('vscode.typescript-language-features');
 		if (!tsExtension) { return; }
 		await tsExtension.activate();

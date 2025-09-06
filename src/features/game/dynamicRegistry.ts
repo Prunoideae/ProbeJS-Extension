@@ -1,4 +1,4 @@
-import { ProbeWebClient } from "../probe";
+import { ProbeWebClient } from "../../probe";
 
 export interface RegistryData {
     timestamp: number;
