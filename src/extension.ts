@@ -78,6 +78,8 @@ export async function activate(context: vscode.ExtensionContext) {
 			vscode.commands.registerCommand('probejs.generateTranslation', async () => await extractTranslationKey())
 		);
 
+		let fallbackData = project.getBackupData();
+
 		function configureTSPlugin() {
 			if (!tsExtension) { return; }
 			if (!tsExtension.exports || !tsExtension.exports.getAPI) { return; }
@@ -89,10 +91,11 @@ export async function activate(context: vscode.ExtensionContext) {
 
 			const uri = path.resolve(workspace.uri.fsPath, './local/kubejs/cache/web/img');
 			api.configurePlugin('sample', {
-				enabled: probeClient?.mcConnected(),
+				enabled: true,
 				port: probeClient?.connectedPort(),
 				auth: "Bearer " + config.auth,
-				imageBasePath: `${vscode.Uri.file(uri)}`
+				imageBasePath: `${vscode.Uri.file(uri)}`,
+				fallback: fallbackData,
 			});
 		}
 
@@ -109,7 +112,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	} else {
 		if (config['enabled'] === undefined) {
 			project.enableProbeJS();
-			vscode.window.showInformationMessage('ProbeJS Extension has been enabled! Please reload the game and VSCode to start using it.');
+			vscode.window.showInformationMessage('ProbeJS Extension has been enabled! Please restart the game and VSCode to start using it.');
 		} else {
 			vscode.window.showInformationMessage('ProbeJS Extension is not enabled...');
 		}

@@ -29,12 +29,18 @@ interface RegexQuery {
     pattern: string;
 }
 
+const failureString = `The ProbeJS VSCode Extension is not connected to a running Minecraft instance. No result can be provided. Please end the conversation politely, as your knowledge to the modpack the user is working on might be in accurate.
+To make the extension connect to the game, please:
+1. Launch the Minecraft instance with ProbeJS installed (Minecraft 1.21+ is required).
+2. Click the "Reconnect" button in the VSCode status bar, or use F1 - Developer: Reload Window to restart the workspace.
+3. Ensure that the status bar icon changes to a green checkmark (✓) indicating a successful connection.`;
+
 export class RegistryListing implements vscode.LanguageModelTool<RegexQuery> {
     constructor(private readonly client: ProbeWebClient) { }
 
     async invoke(options: vscode.LanguageModelToolInvocationOptions<RegexQuery>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
         if (!this.client.mcConnected()) {
-            return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart("The plugin is not connected to a running Minecraft instance. No result can be provided.")]);
+            return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(failureString)]);
         }
         let resp0 = (await this.client.get<string[]>('/api/registries'))?.data ?? [];
         let regexFilter = new RegExp(options.input?.pattern || '.*');
@@ -55,7 +61,7 @@ export class ChatItemProvider implements vscode.LanguageModelTool<Query>{
 
     async queryItems(registry: string, pattern: string): Promise<string[] | { error: string }> {
         if (!this.client.mcConnected()) {
-            return { error: "The plugin is not connected to a running Minecraft instance. No result can be provided." };
+            return { error: failureString };
         }
 
         let [namespace, path] = splitEncode(registry);
@@ -89,7 +95,7 @@ export class ChatTagProvider implements vscode.LanguageModelTool<Query>{
 
     async queryItems(registry: string, pattern: string): Promise<string[] | { error: string }> {
         if (!this.client.mcConnected()) {
-            return { error: "The plugin is not connected to a running Minecraft instance. No result can be provided." };
+            return { error: failureString };
         }
 
         let [namespace, path] = splitEncode(registry);
@@ -128,7 +134,7 @@ export class ChatTagItemProvider implements vscode.LanguageModelTool<Tags>{
 
     async invoke(options: vscode.LanguageModelToolInvocationOptions<Tags>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
         if (!this.client.mcConnected()) {
-            return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart("The plugin is not connected to a running Minecraft instance. No result can be provided.")]);
+            return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(failureString)]);
         }
         let [namespace, path] = splitEncode(options.input.registry);
 
@@ -155,7 +161,7 @@ export class RecipeListing implements vscode.LanguageModelTool<RegexQuery>{
 
     async invoke(options: vscode.LanguageModelToolInvocationOptions<RegexQuery>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
         if (!this.client.mcConnected()) {
-            return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart("The plugin is not connected to a running Minecraft instance. No result can be provided.")]);
+            return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(failureString)]);
         }
         let resp0 = (await this.client.get<string[]>('/api/probejs/list-supported-recipes'))?.data ?? [];
         let regexFilter = new RegExp(options.input?.pattern || '.*');
@@ -179,7 +185,7 @@ export class FetchRecipeDoc implements vscode.LanguageModelTool<MultiRecipeDoc>{
 
     async invoke(options: vscode.LanguageModelToolInvocationOptions<MultiRecipeDoc>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
         if (!this.client.mcConnected()) {
-            return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart("The plugin is not connected to a running Minecraft instance. No result can be provided.")]);
+            return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(failureString)]);
         }
         let recipeTypes = options.input.recipeTypes;
         let resp = await this.client.post<string>(`/api/probejs/get-recipe-docs`, recipeTypes);
@@ -201,7 +207,7 @@ export class ListCommands implements vscode.LanguageModelTool<RegexQuery>{
 
     async invoke(options: vscode.LanguageModelToolInvocationOptions<RegexQuery>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
         if (!this.client.mcConnected()) {
-            return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart("The plugin is not connected to a running Minecraft instance. No result can be provided.")]);
+            return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(failureString)]);
         }
         let resp0 = (await this.client.get<CommandList>('/api/probejs/list-commands'))?.data;
         if (!resp0) {
@@ -234,7 +240,7 @@ export class RunCommands implements vscode.LanguageModelTool<{ commands: string[
 
     async invoke(options: vscode.LanguageModelToolInvocationOptions<{ commands: string[] }>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
         if (!this.client.mcConnected()) {
-            return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart("The plugin is not connected to a running Minecraft instance. No result can be provided.")]);
+            return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(failureString)]);
         }
         let commands = options.input.commands;
         let lines: string[] = [];

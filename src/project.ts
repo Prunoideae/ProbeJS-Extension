@@ -9,6 +9,11 @@ interface ProbeJSConfig {
     "auth": string;
 }
 
+interface FallbackData {
+    "registry": string;
+    "objects": string[];
+};
+
 export class ProbeJSProject {
     private workspace: vscode.Uri;
 
@@ -42,6 +47,18 @@ export class ProbeJSProject {
 
     get decompiledPath(): vscode.Uri {
         return this.withPath(".probe/decompiled");
+    }
+
+    public getBackupData(): FallbackData[] | undefined {
+        let file = this.withPath(".probe/registry_objects.json");
+        if (!existsSync(file.fsPath)) { return undefined; }
+        let data: { [s: string]: string[] } = JSON.parse(readFileSync(file.fsPath, 'utf8'));
+        let result: FallbackData[] = [];
+        for (const registry of Object.keys(data)) {
+            if (!Array.isArray(data[registry])) { return undefined; }
+            result.push({ registry: registry, objects: data[registry] });
+        }
+        return result;
     }
 
     public enableProbeJS(): void {

@@ -2,6 +2,10 @@
 
 All notable changes to the "ProbeJS" extension will be documented in this file.
 
+## [v0.5.0]
+
+- Updated for KubeJS version `2101.7.2-build.270`
+
 ## [v0.4.2]
 
 - Fixed a bug where the WebSocket is instantiated too early, causing the extension to not work properly.

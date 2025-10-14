@@ -20,3 +20,8 @@ export interface ModSearch {
     name: string,
     version: string,
 }
+
+export interface FallbackData {
+    registry: string,
+    objects: string[],
+}

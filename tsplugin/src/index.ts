@@ -2,6 +2,8 @@ import tss from 'typescript/lib/tsserverlibrary';
 import { DetailEntry, DynamicRegistry, EntryWithDisplay, RegistryData } from './fetcher';
 import axios from 'axios';
 import { ProbeImages } from './image';
+import { FallbackData } from './model';
+import { log } from 'console';
 
 interface SpecialEntry {
     name: string,
@@ -20,22 +22,29 @@ function init(modules: { typescript: typeof tss }): tss.server.PluginModule {
         enabled: boolean,
         port: number | undefined,
         imageBasePath: string,
-        auth: string | undefined
+        auth: string | undefined,
+        fallback: FallbackData[] | undefined,
     }) {
         if (config.enabled) {
             enabled = config.enabled;
-            logger?.info(`ProbeJS tsserver plugin is now ${enabled ? "enabled" : "disabled"}`);
-            if (config.port === cachedPort) { return; }
+            logger?.info(`ProbeJS tsserver plugin is now ${enabled ? "enabled" : "disabled"} 1`);
+            if (config.port === cachedPort && cachedPort !== undefined) { return; }
             cachedPort = config.port;
             cachedImages.basePath = config.imageBasePath;
             axios.defaults.baseURL = `http://localhost:${config.port}`;
             cachedData.auth = config.auth;
-            cachedData.refreshData(logger!);
+            cachedData.fallback = config.fallback;
+            cachedData.initWithFallbacks();
+            logger?.info(`Received fallback data with ${cachedData.fallback?.length} registries`);
+            if (cachedPort !== undefined) { cachedData.refreshData(logger!); }
+
         }
     }
 
     // const { $LevelChunk } = require("net.minecraft.world.level.chunk.LevelChunk")
     let requireMatcher = /const\s+{\s*\$([^}]+)\s*}\s*=\s*require\("([^"]+)"\)/;
+    // import { $LevelChunk } from "net.minecraft.world.level.chunk.LevelChunk"
+    let importMatcher = /import\s+{\s*\$([^}]+)\s*}\s*from\s*"([^"]+)"/;
 
     function patchCodeAction(action: tss.CodeAction): tss.CodeAction {
         if (!enabled) { return action; }
@@ -50,7 +59,8 @@ function init(modules: { typescript: typeof tss }): tss.server.PluginModule {
                         // $Predicate + java.util.function.Predicate formats to:
                         // /** @type {typeof import("java.util.function.Predicate").$Predicate} */
                         // let $Predicate = Java.loadClass("java.util.function.Predicate")
-                        let [, variable, module] = textChange.newText.match(requireMatcher) ?? [];
+                        let match = textChange.newText.match(requireMatcher) ?? textChange.newText.match(importMatcher);
+                        let [, variable, module] = match ?? [];
                         if (!variable || !module) { return textChange; }
 
                         let newTextChange: tss.TextChange = {
@@ -112,7 +122,10 @@ function init(modules: { typescript: typeof tss }): tss.server.PluginModule {
 
     function processSpecialNames(name: string): tss.CompletionEntryDetails | undefined {
         let data = cachedData.getData();
-        if (!data) { return undefined; }
+        if (!data) {
+            cachedData.refreshData(logger!);
+            return undefined;
+        }
 
         let nameWithoutPrefix = name.slice(1);
         if (data.itemMap.has(name)) {
@@ -241,6 +254,14 @@ function init(modules: { typescript: typeof tss }): tss.server.PluginModule {
             return newDetails;
         };
 
+        const specialEqualityMap = new Map<string, string>([
+            ["$ItemStack", "minecraft:item"],
+            ["$Item", "minecraft:item"],
+            ["$Block", "minecraft:block"],
+            ["$LevelBlock", "minecraft:block"],
+            ["$Fluid", "minecraft:fluid"],
+        ]);
+
         proxy.getCompletionsAtPosition = (fileName, position, options, formatOptions) => {
             let oldCompletions = info.languageService.getCompletionsAtPosition(fileName, position, options, formatOptions);
             if (!oldCompletions) {
@@ -248,19 +269,21 @@ function init(modules: { typescript: typeof tss }): tss.server.PluginModule {
                 let definition = info.languageService.getTypeDefinitionAtPosition(fileName, position - 5);
                 // item==" <- triggers here
                 if (!definition) { definition = info.languageService.getTypeDefinitionAtPosition(fileName, position - 3); }
-                if (definition && definition[0].name === "$ItemStack") {
-                    return {
-                        isGlobalCompletion: true,
-                        isMemberCompletion: false,
-                        isNewIdentifierLocation: false,
-                        entries: definition.map((def) => {
-                            return {
-                                name: def.name,
-                                kind: def.kind,
-                                sortText: def.name,
-                            };
-                        }),
-                    };
+                if (definition && definition.length > 0) {
+                    const typeName = definition[0].name;
+                    const registryKey = specialEqualityMap.get(typeName);
+                    
+                    if (registryKey) {
+                        return {
+                            isGlobalCompletion: true,
+                            isMemberCompletion: false,
+                            isNewIdentifierLocation: false,
+                            entries: cachedData.getData()
+                                ?.objects[registryKey]
+                                .map(item => makeCompletionItem(item, rlToDisplayName(item), undefined, registryKey))
+                                ?? [],
+                        };
+                    }
                 }
                 return oldCompletions;
             }

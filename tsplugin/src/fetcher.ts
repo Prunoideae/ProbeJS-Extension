@@ -1,7 +1,7 @@
 import axios from "axios";
 import ts from "typescript/lib/tsserverlibrary";
 import { toComponentString } from "./component";
-import { ItemEntry, ItemSearch, ModSearch } from "./model";
+import { FallbackData, ItemEntry, ItemSearch, ModSearch } from "./model";
 
 export interface EntryWithDisplay {
     displayName: string,
@@ -14,6 +14,9 @@ export interface DetailEntry {
     name?: string,
     content: string,
 }
+
+// Consider that we use local loopback, the timeout should be very short
+axios.defaults.timeout = 3000;
 
 export interface RegistryData {
     timestamp: number;
@@ -37,12 +40,15 @@ async function getWithAuth<T>(url: string, auth: string | undefined): Promise<T 
 
 export class DynamicRegistry {
     private cachedData: RegistryData | undefined;
+    private refreshing: boolean = false;
     public basePath: string | undefined;
     public auth: string | undefined;
+    public fallback: FallbackData[] | undefined;
 
     public constructor() { }
 
-    public async refreshData(logger: ts.server.Logger): Promise<void> {
+    public initWithFallbacks() {
+        if (!this.fallback) { return; }
         this.cachedData = {
             timestamp: Date.now(),
             objects: {},
@@ -54,9 +60,49 @@ export class DynamicRegistry {
             itemMap: new Map(),
         };
 
+        for (const { registry, objects } of this.fallback) {
+            this.cachedData.objects[registry] = objects;
+        }
+
+        let items = this.fallback?.filter(f => f.registry === "minecraft:item")[0];
+        if (items) {
+            this.cachedData.items = items.objects.map(o => {
+                return {
+                    displayName: o,
+                    actual: o,
+                    description: "Unable to fetch from server, using fallback data",
+                };
+            });
+        }
+    }
+
+    public async refreshData(logger: ts.server.Logger): Promise<void> {
+        if (this.refreshing) { return; }
+        this.refreshing = true;
+
+        if (!this.cachedData) {
+            this.cachedData = {
+                timestamp: Date.now(),
+                objects: {},
+                tags: {},
+                items: [],
+                mods: [],
+                recipeIds: [],
+                translations: new Map(),
+                itemMap: new Map(),
+            };
+        }
+        this.cachedData.timestamp = Date.now();
+
         let registries = (await getWithAuth<string[]>("/api/registries", this.auth)) ?? [];
         logger.info(`baseUrl: ${axios.defaults.baseURL}`);
         logger.info(`Registries: ${registries}`);
+
+        if (registries.length === 0 && this.fallback) {
+            // Use fallback
+            this.refreshing = false;
+
+        }
 
         for (const registry of registries) {
             let [namespace, path] = registry.split(":");
@@ -106,6 +152,8 @@ export class DynamicRegistry {
         for (const [key, value] of Object.entries(translations)) {
             this.cachedData.translations.set(key, value);
         }
+
+        this.refreshing = false;
     }
 
     private processRecipeIds(recipeIds: { [key: string]: string[] } | undefined): string[] {
