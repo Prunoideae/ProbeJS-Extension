@@ -1,21 +1,17 @@
 import * as vscode from 'vscode';
 import { ProbeWebClient } from '../probe';
-import { TextContentProvider } from './display/textProvider';
-import { ProbeImages } from './display/imageClient';
 
-export function registerChatTools(context: vscode.ExtensionContext, client: ProbeWebClient, images: ProbeImages, textProvider: TextContentProvider) {
+export function registerChatTools(context: vscode.ExtensionContext, client: ProbeWebClient) {
     context.subscriptions.push(vscode.lm.registerTool('probejs-list_registries', new RegistryListing(client)));
     context.subscriptions.push(vscode.lm.registerTool('probejs-query_by_regex', new ChatItemProvider(client)));
     context.subscriptions.push(vscode.lm.registerTool('probejs-query_tags_by_regex', new ChatTagProvider(client)));
     context.subscriptions.push(vscode.lm.registerTool('probejs-query_tagged_objects', new ChatTagItemProvider(client)));
-    context.subscriptions.push(vscode.lm.registerTool('probejs-list_supported_recips', new RecipeListing(client)));
-    context.subscriptions.push(vscode.lm.registerTool('probejs-fetch_recipe_docs', new FetchRecipeDoc(client)));
     context.subscriptions.push(vscode.lm.registerTool('probejs-list_commands', new ListCommands(client)));
     context.subscriptions.push(vscode.lm.registerTool('probejs-run_commands', new RunCommands(client)));
-    context.subscriptions.push(vscode.lm.registerTool('probejs-display_report', new DisplayReport(textProvider, images)));
 }
 
 function splitEncode(rl: string): [string, string] {
+    if (!rl.includes(":")) { rl = "minecraft:" + rl; }
     let [namespace, path] = rl.split(':');
     return [encodeURIComponent(namespace), encodeURIComponent(path)];
 }
@@ -55,7 +51,7 @@ export class RegistryListing implements vscode.LanguageModelTool<RegexQuery> {
     }
 }
 
-export class ChatItemProvider implements vscode.LanguageModelTool<Query>{
+export class ChatItemProvider implements vscode.LanguageModelTool<Query> {
 
     constructor(private readonly client: ProbeWebClient) { }
 
@@ -90,7 +86,7 @@ export class ChatItemProvider implements vscode.LanguageModelTool<Query>{
     }
 }
 
-export class ChatTagProvider implements vscode.LanguageModelTool<Query>{
+export class ChatTagProvider implements vscode.LanguageModelTool<Query> {
     constructor(private readonly client: ProbeWebClient) { }
 
     async queryItems(registry: string, pattern: string): Promise<string[] | { error: string }> {
@@ -129,7 +125,7 @@ interface Tags {
     tags: string[];
 }
 
-export class ChatTagItemProvider implements vscode.LanguageModelTool<Tags>{
+export class ChatTagItemProvider implements vscode.LanguageModelTool<Tags> {
     constructor(private readonly client: ProbeWebClient) { }
 
     async invoke(options: vscode.LanguageModelToolInvocationOptions<Tags>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
@@ -156,7 +152,7 @@ export class ChatTagItemProvider implements vscode.LanguageModelTool<Tags>{
     }
 }
 
-export class RecipeListing implements vscode.LanguageModelTool<RegexQuery>{
+export class RecipeListing implements vscode.LanguageModelTool<RegexQuery> {
     constructor(private readonly client: ProbeWebClient) { }
 
     async invoke(options: vscode.LanguageModelToolInvocationOptions<RegexQuery>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
@@ -176,33 +172,12 @@ export class RecipeListing implements vscode.LanguageModelTool<RegexQuery>{
     }
 }
 
-interface MultiRecipeDoc {
-    recipeTypes: string[];
-}
-
-export class FetchRecipeDoc implements vscode.LanguageModelTool<MultiRecipeDoc>{
-    constructor(private readonly client: ProbeWebClient) { }
-
-    async invoke(options: vscode.LanguageModelToolInvocationOptions<MultiRecipeDoc>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
-        if (!this.client.mcConnected()) {
-            return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(failureString)]);
-        }
-        let recipeTypes = options.input.recipeTypes;
-        let resp = await this.client.post<string>(`/api/probejs/get-recipe-docs`, recipeTypes);
-        if (!resp) {
-            return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart("No recipe documentation found for the specified types.")]);
-        }
-        resp = '```js\n' + resp + '\n```';
-        return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(resp)]);
-    }
-}
-
 interface CommandList {
     playerName: string;
     commands: string[];
 }
 
-export class ListCommands implements vscode.LanguageModelTool<RegexQuery>{
+export class ListCommands implements vscode.LanguageModelTool<RegexQuery> {
     constructor(private readonly client: ProbeWebClient) { }
 
     async invoke(options: vscode.LanguageModelToolInvocationOptions<RegexQuery>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
@@ -263,24 +238,5 @@ export class RunCommands implements vscode.LanguageModelTool<{ commands: string[
                 message: `Will run following commands in game:\n\`\`\`text\n${commands}\n\`\`\`\nAre you sure?`,
             }
         };
-    }
-}
-
-// probejs-display_report
-export class DisplayReport implements vscode.LanguageModelTool<{ markdownContent: string, title: string }>{
-    constructor(private readonly textProvider: TextContentProvider, private readonly images: ProbeImages) { }
-
-
-    async invoke(options: vscode.LanguageModelToolInvocationOptions<{ markdownContent: string; title: string; }>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
-        const { markdownContent, title } = options.input;
-        const uri = vscode.Uri.parse(`${TextContentProvider.scheme}:${title}`);
-        this.textProvider.registerText(title, markdownContent);
-        await vscode.commands.executeCommand('markdown.showPreview', uri);
-
-        return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(`Report "${title}" has been displayed in a new tab.`)]);
-    }
-
-    prepareInvocation(options: vscode.LanguageModelToolInvocationPrepareOptions<{ markdownContent: string; title: string; }>, token: vscode.CancellationToken): vscode.ProviderResult<vscode.PreparedToolInvocation> {
-        return { invocationMessage: "Display the report in a new tab..." };
     }
 }

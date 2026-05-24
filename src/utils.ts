@@ -3,24 +3,6 @@ interface Item {
     components?: string;
 }
 
-interface Fluid {
-    id: string;
-    components?: string;
-}
-
-enum StringType {
-    item,
-    itemTag,
-    fluid,
-    fluidTag,
-    block,
-    blockTag,
-}
-
-export function guessStringType(s: string) {
-
-}
-
 const validateResourceLocation = /^[a-z0-9_]+:[a-z0-9_\/]+$/;
 
 export function parseItemString(s: string): Item | undefined {

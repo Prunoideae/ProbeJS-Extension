@@ -8,14 +8,6 @@ const baseConfig = {
     sourcemap: false,
 };
 
-const webviewConfig = {
-    ...baseConfig,
-    target: "es2020",
-    format: "esm",
-    entryPoints: ["./src/webview/main.ts"],
-    outfile: "./out/webview.js",
-};
-
 const extensionConfig = {
     ...baseConfig,
     platform: 'node',
@@ -29,7 +21,6 @@ const extensionConfig = {
 (async () => {
     try {
         await build(extensionConfig);
-        await build(webviewConfig);
     } catch (e) {
         console.error(e);
         process.exit(1);

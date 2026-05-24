@@ -2,9 +2,9 @@
   "name": "probejs",
   "displayName": "ProbeJS",
   "description": "VSCode-Minecraft interop for ProbeJS",
-  "version": "0.4.2",
+  "version": "0.5.2",
   "engines": {
-    "vscode": "^1.100.0"
+    "vscode": "^1.110.0"
   },
   "categories": [
     "Other"
@@ -42,21 +42,8 @@
         "title": "ProbeJS: Generate Translation Key"
       }
     ],
-    "typescriptServerPlugins": [
-      {
-        "name": "sample"
-      }
-    ],
-    "chatParticipants": [
-      {
-        "id": "probejs.probeParticipant",
-        "fullName": "ProbeJS Report Generator",
-        "name": "ProbeJS",
-        "description": "Generates reports from Minecraft data.",
-        "isSticky": true,
-        "commands": []
-      }
-    ],
+    "chatParticipants": [],
+    "chatAgents": [],
     "languageModelTools": [
       {
         "name": "probejs-query_by_regex",
@@ -116,61 +103,6 @@
         }
       },
       {
-        "name": "probejs-list_supported_recips",
-        "displayName": "List Supported Recipes",
-        "tags": [
-          "minecraft",
-          "listing",
-          "recipe",
-          "regex"
-        ],
-        "toolReferenceName": "listSupportedRecipes",
-        "canBeReferencedInPrompt": true,
-        "modelDescription": "List all supported recipes available in the Minecraft game by a regex filter. E.g. minecraft:crafting, minecraft:smelting, etc. If the game does not have a recipe type, there is no way to add support for it.",
-        "icon": "$(list-selection)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "pattern": {
-              "type": "string",
-              "description": "The regex pattern to match against recipe names. Strongly advised to use a pattern, or all recipes types will be returned."
-            }
-          },
-          "required": [
-            "pattern"
-          ]
-        }
-      },
-      {
-        "name": "probejs-fetch_recipe_docs",
-        "displayName": "Fetch Recipe Documentation",
-        "tags": [
-          "minecraft",
-          "recipe",
-          "documentation"
-        ],
-        "toolReferenceName": "fetchRecipeDocs",
-        "canBeReferencedInPrompt": true,
-        "modelDescription": "Fetch documentation for a list of recipe types in the Minecraft game. E.g. minecraft:crafting, minecraft:smelting, etc. The runtime will provide the true documentation specific to this game instance, do not use other sources.",
-        "icon": "$(book)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "recipeTypes": {
-              "type": "array",
-              "description": "List of recipe types to fetch documentation for. Should be supported by the game.",
-              "items": {
-                "type": "string",
-                "description": "The recipe type to fetch documentation for, e.g. minecraft:crafting, minecraft:smelting, etc."
-              }
-            }
-          },
-          "required": [
-            "recipeTypes"
-          ]
-        }
-      },
-      {
         "name": "probejs-query_tags_by_regex",
         "displayName": "Query Tags by Regex",
         "tags": [
@@ -212,7 +144,7 @@
         ],
         "toolReferenceName": "queryTaggedObjects",
         "canBeReferencedInPrompt": true,
-        "modelDescription": "Fetch objects that belong to specific tags in the Minecraft registry. Given a registry and a list of tags, returns all objects that are tagged with those tags.",
+        "modelDescription": "Find objects that belong to specific tags in the Minecraft registry. Given a registry and a list of tags, returns all objects that are tagged with those tags.",
         "icon": "$(book)",
         "inputSchema": {
           "type": "object",
@@ -272,7 +204,7 @@
         ],
         "toolReferenceName": "runCommands",
         "canBeReferencedInPrompt": true,
-        "modelDescription": "Execute commands in the Minecraft game. This will run the commands as if they were entered in the game's chat/console one by one, in the order they are provided.",
+        "modelDescription": "Execute commands in the Minecraft game. This will run the commands as if they were entered in the game's chat/console one by one, in the order they are provided. The current player will be the executor of the command, thus potentially limited by permissions.",
         "icon": "$(play)",
         "inputSchema": {
           "type": "object",
@@ -288,37 +220,6 @@
           },
           "required": [
             "commands"
-          ]
-        }
-      },
-      {
-        "name": "probejs-display_report",
-        "displayName": "Display Report",
-        "tags": [
-          "minecraft",
-          "report",
-          "display",
-          "markdown"
-        ],
-        "toolReferenceName": "displayReport",
-        "canBeReferencedInPrompt": true,
-        "modelDescription": "Display a markdown report in a new VS Code tab. This tool allows creating and displaying formatted reports with markdown content.",
-        "icon": "$(file-text)",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "markdownContent": {
-              "type": "string",
-              "description": "The markdown content to display in the report."
-            },
-            "title": {
-              "type": "string",
-              "description": "The title of the report tab."
-            }
-          },
-          "required": [
-            "markdownContent",
-            "title"
           ]
         }
       }
@@ -338,7 +239,7 @@
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.1",
     "@types/node": "16.x",
-    "@types/vscode": "^1.100.0",
+    "@types/vscode": "^1.110.0",
     "@types/ws": "^8.5.10",
     "@typescript-eslint/eslint-plugin": "^5.59.1",
     "@typescript-eslint/parser": "^5.59.1",
@@ -347,7 +248,7 @@
     "eslint": "^8.39.0",
     "glob": "^8.1.0",
     "mocha": "^10.2.0",
-    "typescript": "^5.0.4"
+    "typescript": "^5.9.3"
   },
   "repository": {
     "type": "git",
@@ -361,7 +262,6 @@
     "@vscode/prompt-tsx": "^0.4.0-alpha.4",
     "@vscode/webview-ui-toolkit": "^1.4.0",
     "axios": "^1.7.3",
-    "sample": "file:tsplugin",
     "ws": "^8.18.0"
   }
 }

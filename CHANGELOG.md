@@ -2,9 +2,28 @@
 
 All notable changes to the "ProbeJS" extension will be documented in this file.
 
+## [v0.5.2]
+
+- Rewritten the extension for ProbeJS 8.0.0
+- Removed unstable websocket things and many other not-so-useful features
+
+## [v0.5.1]
+
+- Fixed an issue where the "Add import from" code action does not work when the VSCode language is set to Chinese.
+
 ## [v0.5.0]
 
 - Updated for KubeJS version `2101.7.2-build.270`
+- Added `ProbeJS: Insert Array of Literals` command to insert an array of registry objects (e.g. items, blocks) into the current cursor position.
+- Added `ProbeJS: Insert Array of Literal from Tags` command to insert an array of registry objects from a specified tag (e.g. `minecraft:logs`) into the current cursor position.
+- Added `ProbeJS: Insert Recipe JSON` command to insert the JSON content of a recipe into the current cursor position. The command will prompt for the recipe ID.
+- Added `ProbeJS: Generate Translation Key` command that generates stub translation keys for all unlocalized strings in the current language. A connection to Minecraft is required.
+- Removed type hinting for `Java.loadClass` and most registry-related literal unions due to performance issues. The support is re-added using a TypeScript language service plugin, which should be more efficient.
+- Added a lot of Copilot support, which should make it possible to use Generative AI tools to write KubeJS scripts.
+- Added hinting to convert TypeScript type annotations to JSDoc comments.
+- Added warning when the script contains hardcoded component (e.g. Text.of("Hello")) instead of translation key (e.g. Text.translatable("item.minecraft.apple")).
+- Fixed an issue where the code lens for reloading scripts will flicker when the script is modified.
+- Rearranged code.
 
 ## [v0.4.2]
 
