@@ -2,6 +2,12 @@
 
 All notable changes to the "ProbeJS" extension will be documented in this file.
 
+## [v0.5.3]
+
+- Added Websocket support back since the performance issue is resolved.
+- Added new features for Kubedex
+- Added VSCode Copilot Chat support for KubeJS
+
 ## [v0.5.2]
 
 - Rewritten the extension for ProbeJS 8.0.0
